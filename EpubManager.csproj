@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Entities\EpubIdentifier.cs" />
+    <Compile Remove="Entities\EpubMetadata.cs" />
+    <Compile Remove="Entities\EpubChapter.cs" />
+    <Compile Remove="Entities\Content.cs" />
+    <Compile Remove="XML\NCXNavPoint.cs" />
+    <Compile Remove="XML\Contributor.cs" />
+    <Compile Remove="XML\NCXContent.cs" />
+    <Compile Remove="XML\Identifier.cs" />
+    <Compile Remove="XML\RootFiles.cs" />
+    <Compile Remove="XML\RootFile.cs" />
+    <Compile Remove="XML\Metadata.cs" />
+    <Compile Remove="XML\Manifest.cs" />
+    <Compile Remove="XML\NCXText.cs" />
+    <Compile Remove="XML\NCXMeta.cs" />
+    <Compile Remove="XML\NCXHead.cs" />
+    <Compile Remove="XML\ItemRef.cs" />
+    <Compile Remove="XML\Creator.cs" />
+    <Compile Remove="XML\Spine.cs" />
+    <Compile Remove="XML\Guide.cs" />
+    <Compile Remove="XML\Item.cs" />
+  </ItemGroup>
+
+</Project>
