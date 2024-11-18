@@ -21,7 +21,7 @@ namespace EpubManager
 		Task<EpubBook> ReadAsync(string path, bool metadataOnly = true);
 		Task<string> GetOpfPath(string bookPath);
 		Task<string> LoadFileContent(string entryPath);
-		Task<string> GetChapterContentAsync(string bookPath, string rootFolder, string chapterPath);
+		Task<(List<string> styles, string content)> GetChapterContentAsync(string bookPath, string rootFolder, string chapterPath);
 	}
 
 
@@ -36,14 +36,14 @@ namespace EpubManager
 
 		private readonly Dictionary<Type, XmlSerializer> serializers = [];
 
-		private readonly List<CSSProperty> CustomStyles =
+		private readonly List<CssProperty> CustomStyles =
 		[
-			new() { Property = "line-height", CSSVariable= "var(--line-height)", CSSUnit = "em", Mode = "add" },
-			new() { Property = "text-indent", CSSVariable= "var(--text-indent)", CSSUnit = "em", Mode = "replace" },
-			new() { Property = "margin-top", CSSVariable= "var(--paragraph-spacing)", CSSUnit = "pt", Mode = "max" },
-			new() { Property = "margin-bottom", CSSVariable= "var(--paragraph-spacing)", CSSUnit = "pt", Mode = "max" },
-			new() { Property = "margin", CSSVariable= "var(--paragraph-spacing)", CSSUnit = "pt", Mode = "max" },
-			new() { Property = "font-size", CSSVariable= "1", CSSUnit = "em", Mode = "max" },
+			new() { Property = "line-height", CssVariable= "var(--line-height)", CssUnit = "em", Mode = "add" },
+			new() { Property = "text-indent", CssVariable= "var(--text-indent)", CssUnit = "em", Mode = "replace" },
+			new() { Property = "margin-top", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = "max" },
+			new() { Property = "margin-bottom", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = "max" },
+			new() { Property = "margin", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = "max" },
+			new() { Property = "font-size", CssVariable= "1", CssUnit = "em", Mode = "max" },
 			new() { Property = "font-family", Mode = "remove" },
 		];
 
@@ -95,7 +95,7 @@ namespace EpubManager
             return rootFile.FullPath;
         }
 
-		public async Task<string> GetChapterContentAsync(string bookPath, string rootFolder, string chapterPath)
+		public async Task<(List<string> styles, string content)> GetChapterContentAsync(string bookPath, string rootFolder, string chapterPath)
 		{
 			epubPath = bookPath;
 			this.rootFolder = rootFolder;
@@ -244,18 +244,18 @@ namespace EpubManager
 				StringBuilder cssContent = new();
 				var css = await LoadFileContent(item.Href);
 				cssContent.Append(css);
-				var imports = CSSImportRegex().Matches(css);
-				foreach (Match import in imports.Cast<Match>())
+				var imports = CssImportRegex().Matches(css);
+				foreach (var import in imports.Cast<Match>())
 				{
 					cssContent.Replace(import.Value, null);
 				}
 				var fontFaces = FontFaceRegex().Matches(css);
-				foreach (Match fontFace in fontFaces.Cast<Match>())
+				foreach (var fontFace in fontFaces.Cast<Match>())
 				{
 					cssContent.Replace(fontFace.Value, null);
 				}
-				await ReplaceCSSProperties(cssContent);
-				return cssContent.ToString();
+				await ReplaceCssProperties(cssContent);
+				return new Style { Name= item.Href, Content = cssContent.ToString()};
 			});
 			content.Styles = await Task.WhenAll(cssTasks);
 			
@@ -334,7 +334,7 @@ namespace EpubManager
 		private int GetWordCount(string content)
 		{
 			// Eliminar las etiquetas HTML
-			var textOnly = HTMLRegex().Replace(content, string.Empty);
+			var textOnly = HtmlRegex().Replace(content, string.Empty);
 
 			// Contar las palabras
 			return textOnly.Split(separator, StringSplitOptions.RemoveEmptyEntries).Length;
@@ -352,11 +352,11 @@ namespace EpubManager
 		/// </summary>
 		/// <param name="path">Chapter path</param>
 		/// <returns>Content as string</returns>
-		private async Task<string> LoadChapterContentAsync(string path)
+		private async Task<(List<string> styles, string content)> LoadChapterContentAsync(string path)
 		{
+			List<string> styles = [];
 			string content = await LoadFileContent(path);
 			StringBuilder result = new(content);
-			StringBuilder css = new();
 
 			if (DivWithImageRegex().IsMatch(content))
 			{
@@ -369,17 +369,20 @@ namespace EpubManager
 
 			content = result.ToString();
 
+			
 			if (LinkTagRegex().IsMatch(content))
 			{
 
 				var links = LinkTagRegex().Matches(content).Cast<Match>();
-				foreach (Match link in links)
+				foreach (var link in links)
 				{
+					var href = link.Groups[1].Value;
+					styles.Add(href);
 					result.Replace(link.Value, null);
 				}
 			}
 
-			await ReplaceCSSProperties(result);
+			await ReplaceCssProperties(result);
 
 			if(ImagesRegex().IsMatch(content)) {
 				var imageMatches = ImagesRegex().Matches(content).Cast<Match>();
@@ -397,10 +400,10 @@ namespace EpubManager
 				}
 			}
 
-			return result.ToString();
+			return (styles, result.ToString());
 		}
 
-		private async Task ReplaceCSSProperties(StringBuilder content)
+		private async Task ReplaceCssProperties(StringBuilder content)
 		{
 			string contentString = content.ToString();
 			var tasks = CustomStyles.SelectMany(cSSProperty =>
@@ -428,9 +431,9 @@ namespace EpubManager
 							}
 							return cSSProperty.Mode switch
 							{
-								"replace" => $"calc({cSSProperty.CSSVariable} * 1{cSSProperty.CSSUnit})",
-								"add" => $"calc({value} + ({cSSProperty.CSSVariable} * 1{cSSProperty.CSSUnit}))",
-								"max" => $"max({value}, calc({cSSProperty.CSSVariable} * 1{cSSProperty.CSSUnit}))",
+								"replace" => $"calc({cSSProperty.CssVariable} * 1{cSSProperty.CssUnit})",
+								"add" => $"calc({value} + ({cSSProperty.CssVariable} * 1{cSSProperty.CssUnit}))",
+								"max" => $"max({value}, calc({cSSProperty.CssVariable} * 1{cSSProperty.CssUnit}))",
 								"remove" => "",
 								_ => value
 							};
@@ -499,7 +502,7 @@ namespace EpubManager
 		[GeneratedRegex("<link.+?href=[\"'](.+?)[\"'].*?>")]
 		private static partial Regex LinkTagRegex();
 		[GeneratedRegex(@"@import\s*[^;]+;")]
-		private static partial Regex CSSImportRegex();
+		private static partial Regex CssImportRegex();
 		[GeneratedRegex(@"@font-face\s*{[^}]+}")]
 		private static partial Regex FontFaceRegex();
 		[GeneratedRegex("(<img.+?src=[\"'](.+?)[\"'].*?>)|(<image.+?href=[\"'](.+?)[\"'].*?>)")]
@@ -510,14 +513,14 @@ namespace EpubManager
 		[GeneratedRegex(@"(<div[^>]*>)<img[^>]*></div>")]
 		private static partial Regex DivWithImageRegex();
 
-		private class CSSProperty
+		private class CssProperty
 		{
 			public string Property { get; set; } = null!;
-			public string? CSSVariable { get; set; }
-			public string? CSSUnit { get; set; }
+			public string? CssVariable { get; set; }
+			public string? CssUnit { get; set; }
 			public string Mode { get; set; } = null!;
 		}
 		[GeneratedRegex("<.*?>")]
-		private static partial Regex HTMLRegex();
+		private static partial Regex HtmlRegex();
 	}
 }

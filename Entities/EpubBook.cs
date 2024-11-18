@@ -39,7 +39,7 @@ namespace EpubManager.Entities
 
 	public class Content
 	{
-		public IReadOnlyList<string>? Styles { get; set; }
+		public IReadOnlyList<Style>? Styles { get; set; }
 
 		public IReadOnlyList<EpubChapter> Spine { get; set; } = [];
 
@@ -70,6 +70,12 @@ namespace EpubManager.Entities
 
 		public int GetWordCount(int? untilChapterIndex = null) => ReadingOrder.Take((int)(untilChapterIndex != null ? untilChapterIndex : ReadingOrder.Count)).Sum(c => c.Value.WordCount);
 	}
+	
+	public class Style
+	{
+		public string Name { get; set; } = null!;
+		public string Content { get; set; } = null!;
+	}
 
 	public class EpubChapter
 	{
@@ -77,6 +83,8 @@ namespace EpubManager.Entities
 		public string? Path { get; set; }
 		public string? Content { get; set; }
 		public int WordCount { get; set; }
+		
+		public List<string>? Styles { get; set; }
 
 		[JsonIgnore]
 		readonly Lazy<IEnumerable<EpubChapter>> _chapters;
