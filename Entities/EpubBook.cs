@@ -83,6 +83,7 @@ namespace EpubManager.Entities
 		public string? Path { get; set; }
 		public string? Content { get; set; }
 		public int WordCount { get; set; }
+		public string? ParagraphClassName { get; set; }
 		
 		public List<string>? Styles { get; set; }
 
@@ -103,7 +104,7 @@ namespace EpubManager.Entities
 
 		public bool ContainsChapter(string path) => _chapters.Value.Any(x => x.Path == path);
 
-		static List<EpubChapter> FlattenSpine(IEnumerable<EpubChapter> chapters)
+		private static List<EpubChapter> FlattenSpine(IEnumerable<EpubChapter> chapters)
 		{
 			return [.. chapters, .. chapters.SelectMany(np => FlattenSpine(np.Chapters ?? []))];
 		}
