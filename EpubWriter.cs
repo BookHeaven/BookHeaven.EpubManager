@@ -1,7 +1,4 @@
 ﻿using EpubManager.Entities;
-using EpubManager.XML;
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -22,13 +19,13 @@ namespace EpubManager
     {
         public async Task ReplaceMetadata(string bookPath, EpubMetadata metadata)
 		{
-			string opf = await reader.GetOpfPath(bookPath);
-			string xml = await reader.LoadFileContent(opf);
+			var opf = await reader.GetOpfPath(bookPath);
+			var xml = await reader.LoadFileContent(opf);
 
 
-			XDocument package = XDocument.Parse(xml);
-			XElement metadataElement = package.Descendants().First(x => x.Name.LocalName == "metadata");
-			XNamespace ns = metadataElement.Name.Namespace;
+			var package = XDocument.Parse(xml);
+			var metadataElement = package.Descendants().First(x => x.Name.LocalName == "metadata");
+			var ns = metadataElement.Name.Namespace;
 			
 			metadataElement.SetItem(ns, "title", metadata.Title);
 			metadataElement.SetItem(ns, "creator", metadata.Author);
@@ -40,10 +37,10 @@ namespace EpubManager
 			metadataElement.SetMetaItem("calibre:series", metadata.Series);
 			metadataElement.SetMetaItem("calibre:series_index", metadata.SeriesIndex?.ToString("0.##"));
 
-			using(ZipArchive archive = ZipFile.Open(bookPath, ZipArchiveMode.Update))
+			using(var archive = ZipFile.Open(bookPath, ZipArchiveMode.Update))
 			{
-				ZipArchiveEntry packageEntry = archive.GetEntry(opf)!;
-				using(Stream stream = packageEntry.Open())
+				var packageEntry = archive.GetEntry(opf)!;
+				using(var stream = packageEntry.Open())
 				{
 					stream.SetLength(0);
 					var bytes = Encoding.UTF8.GetBytes(package.ToString());
@@ -55,19 +52,19 @@ namespace EpubManager
         public async Task ReplaceCover(string bookPath, string newCoverPath)
         {
             //Find cover in meta elements
-            string opfPath = await reader.GetOpfPath(bookPath);
-			string xml = await reader.LoadFileContent(opfPath);
+            var opfPath = await reader.GetOpfPath(bookPath);
+			var xml = await reader.LoadFileContent(opfPath);
 
-			XDocument package = XDocument.Parse(xml);
-			string rootFolder = Path.GetDirectoryName(opfPath)!;
+			var package = XDocument.Parse(xml);
+			var rootFolder = Path.GetDirectoryName(opfPath)!;
 
-			XElement metadataElement = package.Descendants().First(x => x.Name.LocalName == "metadata");
+			var metadataElement = package.Descendants().First(x => x.Name.LocalName == "metadata");
 
 			var coverId = metadataElement.Descendants().FirstOrDefault(x => x.Name.LocalName == "meta" && x.Attribute("name")?.Value == "cover")?.Attribute("content")?.Value;
 
 			//Find cover in manifest
-			XElement manifestElement = package.Descendants().First(x => x.Name.LocalName == "manifest");
-			XElement? coverElement = manifestElement.Descendants().FirstOrDefault(x => x.Name.LocalName == "item" && x.Attribute("id")?.Value == coverId);
+			var manifestElement = package.Descendants().First(x => x.Name.LocalName == "manifest");
+			var coverElement = manifestElement.Descendants().FirstOrDefault(x => x.Name.LocalName == "item" && x.Attribute("id")?.Value == coverId);
 
 			//Replace cover
 			if (coverElement != null)
@@ -75,10 +72,10 @@ namespace EpubManager
 				var imageAsBytes = await File.ReadAllBytesAsync(newCoverPath);
 				var coverPath = coverElement.Attribute("href")?.Value ?? null;
 				if (coverPath == null) return;
-				using (ZipArchive archive = ZipFile.Open(bookPath, ZipArchiveMode.Update))
+				using (var archive = ZipFile.Open(bookPath, ZipArchiveMode.Update))
 				{
-					ZipArchiveEntry coverEntry = archive.GetEntry(Path.Combine(rootFolder, coverPath))!;
-					using (Stream stream = coverEntry.Open())
+					var coverEntry = archive.GetEntry(Path.Combine(rootFolder, coverPath))!;
+					using (var stream = coverEntry.Open())
 					{
 						stream.SetLength(0);
 						await stream.WriteAsync(imageAsBytes);

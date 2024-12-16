@@ -57,7 +57,7 @@ namespace EpubManager.XML
 		public NCXContent? Content { get; set; }
 
 		[XmlElement("navPoint")]
-		public List<NCXNavPoint>? NavPoints { get; set; }
+		public List<NCXNavPoint> NavPoints { get; set; } = [];
 
 		[XmlAttribute("id")]
 		public string Id { get; set; } = null!;

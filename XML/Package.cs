@@ -124,6 +124,9 @@ namespace EpubManager.XML
 
 		[XmlAttribute("media-type")]
 		public string MediaType { get; set; } = null!;
+		
+		[XmlAttribute("properties")]
+		public string? Properties { get; set; }
 	}
 
 	public class Spine
