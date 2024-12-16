@@ -37,7 +37,7 @@ public class EpubIdentifier
 
 public class Content
 {
-	public IReadOnlyList<Style>? Styles { get; set; }
+	public IReadOnlyList<Style> Styles { get; set; } = [];
 		
 	public List<SpineItem> Spine { get; set; } = [];
 	
