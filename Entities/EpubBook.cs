@@ -48,7 +48,7 @@ public class Content
 		return itemId is null ? null : GetTitle(TableOfContents);
 
 		// Search recursively for the title of the chapter with the specified item id
-		EpubChapter? GetTitle(IEnumerable<EpubChapter> chapters)
+		EpubChapter? GetTitle(List<EpubChapter> chapters)
 		{
 			foreach (var chapter in chapters)
 			{
@@ -100,7 +100,7 @@ public class EpubChapter
 	{
 		return itemId is not null && Contains(Chapters);
 
-		bool Contains(IEnumerable<EpubChapter> chapters)
+		bool Contains(List<EpubChapter> chapters)
 		{
 			return chapters.Any(chapter => chapter.ItemId == itemId || Contains(chapter.Chapters));
 		}

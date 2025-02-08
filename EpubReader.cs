@@ -47,6 +47,14 @@ public partial class EpubReader : IEpubReader
 		new() {Property = "widows", Mode = "remove" },
 		new() {Property = "orphans", Mode = "remove" },
 	];
+	
+	private class CssProperty
+	{
+		public string Property { get; set; } = null!;
+		public string? CssVariable { get; set; }
+		public string? CssUnit { get; set; }
+		public string Mode { get; set; } = null!;
+	}
 
 	/// <summary>
 	/// Loads the epub file into memory
@@ -85,6 +93,11 @@ public partial class EpubReader : IEpubReader
 		return book;
 	}
 
+	/// <summary>
+	/// Gets the path to the OPF file inside the epub
+	/// </summary>
+	/// <param name="bookPath">Path of the epub file</param>
+	/// <returns>OPF path</returns>
 	public async Task<string> GetOpfPath(string bookPath)
 	{
 		_epubPath = bookPath;
@@ -264,20 +277,20 @@ public partial class EpubReader : IEpubReader
 			};
 		}
 			
-		content.Spine = await LoadSpine();
+		content.Spine = await MapSpineToSpineItemList();
 			
 			
 		if (_package.Manifest.Items.Any(i => i.Properties == "nav"))
 		{
 			// V3 NAV TOC
 			var nav = await LoadNavAsync(_package.Manifest.Items.First(i => i.Properties == "nav").Href);
-			chapters = await LoadNavAsync(nav.ChapterList.First().Chapter);
+			chapters = await MapNavToEpubChapters(nav.ChapterList.First().Chapter);
 		}
 		else if (_package!.Spine.Toc != null)
 		{
 			// V2 NCX TOC
 			var ncx = await ReadEntryAsync<NCX>(_package.Manifest.Items.First(x => x.Id == _package.Spine.Toc).Href);
-			chapters = await LoadNavPointsAsync(ncx.NavMap);
+			chapters = await MapNavMapToEpubChapters(ncx.NavMap);
 		}
 		else
 		{
@@ -305,8 +318,8 @@ public partial class EpubReader : IEpubReader
 	/// Recursively loads the chapters from the NCX TOC
 	/// </summary>
 	/// <param name="navpoints">List of NXC NavPoints</param>
-	/// <returns>List of Chapters</returns>
-	private async Task<List<EpubChapter>> LoadNavPointsAsync(List<NCXNavPoint> navpoints)
+	/// <returns>List of EpubChapter</returns>
+	private async Task<List<EpubChapter>> MapNavMapToEpubChapters(List<NCXNavPoint> navpoints)
 	{
 		var tasks = navpoints.Select(async navPoint =>
 		{
@@ -323,7 +336,7 @@ public partial class EpubReader : IEpubReader
 
 			if(navPoint.NavPoints.Count > 0)
 			{
-				chapter.Chapters = await LoadNavPointsAsync(navPoint.NavPoints);
+				chapter.Chapters = await MapNavMapToEpubChapters(navPoint.NavPoints);
 			}
 				
 
@@ -334,7 +347,12 @@ public partial class EpubReader : IEpubReader
 		return results.Where(ch => ch != null).ToList()!;
 	}
 
-	private async Task<List<EpubChapter>> LoadNavAsync(List<NavLi> navItems)
+	/// <summary>
+	/// Maps the V3 NAV TOC to an EpubChapter list recursively
+	/// </summary>
+	/// <param name="navItems">List of Nav li items</param>
+	/// <returns>List of EpubChapter</returns>
+	private async Task<List<EpubChapter>> MapNavToEpubChapters(List<NavLi> navItems)
 	{
 		var tasks = navItems.Select(async navItem =>
 		{
@@ -346,7 +364,7 @@ public partial class EpubReader : IEpubReader
 
 			if(navItem.ChapterList.Count > 0)
 			{
-				chapter.Chapters = await LoadNavAsync(navItem.ChapterList.First().Chapter);
+				chapter.Chapters = await MapNavToEpubChapters(navItem.ChapterList.First().Chapter);
 			}
 				
 			return chapter;
@@ -355,7 +373,11 @@ public partial class EpubReader : IEpubReader
 		return results.ToList()!;
 	}
 
-	private async Task<List<SpineItem>> LoadSpine()
+	/// <summary>
+	/// Maps the spine to a list of SpineItem
+	/// </summary>
+	/// <returns></returns>
+	private async Task<List<SpineItem>> MapSpineToSpineItemList()
 	{
 		var items = await Task.WhenAll(_package!.Spine.ItemRefs.Select(async itemRef =>
 		{
@@ -376,6 +398,11 @@ public partial class EpubReader : IEpubReader
 		return items.ToList();
 	}
 
+	/// <summary>
+	/// Counts the words in a string, removing HTML tags first for accuracy
+	/// </summary>
+	/// <param name="content">Html</param>
+	/// <returns>Word count</returns>
 	private int GetWordCount(string content)
 	{
 		// Remove HTML tags
@@ -385,10 +412,14 @@ public partial class EpubReader : IEpubReader
 		return textOnly.Split(_separator, StringSplitOptions.RemoveEmptyEntries).Length;
 	}
 		
+	/// <summary>
+	/// Gets the title of a chapter from the html content
+	/// </summary>
+	/// <param name="content">Html</param>
+	/// <returns>Title</returns>
 	private string GetChapterTitle(string content)
 	{
-		var titleRegex = new Regex("<title>(.+?)</title>", RegexOptions.IgnoreCase);
-		var match = titleRegex.Match(content);
+		var match = HtmlTitleRegex().Match(content);
 		if (!match.Success) return string.Empty;
 			
 		var title = WebUtility.HtmlDecode(match.Groups[1].Value);
@@ -404,14 +435,26 @@ public partial class EpubReader : IEpubReader
 		}
 	}
 		
+	/// <summary>
+	/// Gets the stylesheets referenced in the html content
+	/// </summary>
+	/// <param name="content">Html</param>
+	/// <returns>List of paths</returns>
 	private List<string> GetStylesheets(string content)
 	{
 		var links = LinkTagRegex().Matches(content);
 		return links.Select(link => link.Groups[1].Value).ToList();
 	}
 
+	/// <summary>
+	/// Tries to find the most common class in the html content, which is likely to be the paragraph class
+	/// </summary>
+	/// <param name="content">Html</param>
+	/// <returns>Name of the class</returns>
 	private string? GetParagraphClass(string content)
 	{
+		const int minClassCount = 4;
+		
 		var classRegex = new Regex(@"class\s*=\s*[""']([^""']+)[""']", RegexOptions.IgnoreCase);
 		var matches = classRegex.Matches(content);
 		var classFrequency = new Dictionary<string, int>();
@@ -427,7 +470,7 @@ public partial class EpubReader : IEpubReader
 			}
 		}
 		
-		return classFrequency.OrderByDescending(c => c.Value).FirstOrDefault(c => c.Value > 4).Key;
+		return classFrequency.OrderByDescending(c => c.Value).FirstOrDefault(c => c.Value > minClassCount).Key;
 	}
 
 	/// <summary>
@@ -436,7 +479,12 @@ public partial class EpubReader : IEpubReader
 	/// <param name="path">Path inside the epub</param>
 	/// <returns>Cleaned path</returns>
 	private string? CleanPath(string? path) => path != null && path.Contains('#') ? path[..path.IndexOf('#')] : path;
-		
+	
+	/// <summary>
+	/// Does some processing to the html such as removing external css references, replacing css properties and converting images to base64
+	/// </summary>
+	/// <param name="content">The original html</param>
+	/// <returns>Processed html</returns>
 	public async Task<string> ApplyTextContentProcessing(string content)
 	{
 		StringBuilder result = new(content);
@@ -455,7 +503,6 @@ public partial class EpubReader : IEpubReader
 		
 		if (LinkTagRegex().IsMatch(content))
 		{
-
 			var links = LinkTagRegex().Matches(content).Cast<Match>();
 			foreach (var link in links)
 			{
@@ -484,6 +531,10 @@ public partial class EpubReader : IEpubReader
 
 	}
 
+	/// <summary>
+	/// Replaces css properties with custom values
+	/// </summary>
+	/// <param name="content">Html</param>
 	private async Task ReplaceCssProperties(StringBuilder content)
 	{
 		var contentString = content.ToString();
@@ -574,12 +625,17 @@ public partial class EpubReader : IEpubReader
 		}
 			
 	}
-		
+	
+	/// <summary>
+	/// Loads the nav file from the epub
+	/// </summary>
+	/// <param name="path">Path to load</param>
+	/// <returns>Nav object</returns>
 	private async Task<Nav> LoadNavAsync(string path)
 	{
 		var content = await LoadFileContent(path);
 		// Deserialize content from inside body tag into Nav using XDocument
-		XDocument doc = XDocument.Parse(content);
+		var doc = XDocument.Parse(content);
 		var navContent = doc.Descendants().First(x => x.Name.LocalName == "body").Descendants().First(x => x.Name.LocalName == "nav").ToString();
 		var serializer = GetSerializer<Nav>();
 		return (Nav)serializer.Deserialize(new StringReader(navContent))!;
@@ -598,14 +654,8 @@ public partial class EpubReader : IEpubReader
 	//Regex to match any div with an image directly inside and has a group for the div style
 	[GeneratedRegex(@"(<div[^>]*>)<img[^>]*></div>")]
 	private static partial Regex DivWithImageRegex();
-
-	private class CssProperty
-	{
-		public string Property { get; set; } = null!;
-		public string? CssVariable { get; set; }
-		public string? CssUnit { get; set; }
-		public string Mode { get; set; } = null!;
-	}
 	[GeneratedRegex("<.*?>")]
 	private static partial Regex HtmlRegex();
+    [GeneratedRegex("<title>(.+?)</title>")]
+    private static partial Regex HtmlTitleRegex();
 }
