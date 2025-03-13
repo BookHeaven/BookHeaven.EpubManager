@@ -37,7 +37,7 @@ public partial class EpubReader : IEpubReader
 
 	private readonly List<CssProperty> _customStyles =
 	[
-		new() { Property = "line-height", CssVariable= "var(--line-height)", CssUnit = "", Mode = "add" },
+		new() { Property = "line-height", CssVariable= "var(--line-height)", CssUnit = "em", Mode = "add" },
 		new() { Property = "text-indent", CssVariable= "var(--text-indent)", CssUnit = "em", Mode = "replace" },
 		new() { Property = "margin-top", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = "max" },
 		new() { Property = "margin-bottom", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = "max" },
