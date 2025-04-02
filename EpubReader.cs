@@ -262,6 +262,7 @@ public partial class EpubReader : IEpubReader
 			await ReplaceCssProperties(cssContent);
 			return new Style { Name= item.Href, Content = cssContent.ToString()};
 		});
+
 		content.Styles = await Task.WhenAll(cssTasks);
 			
 		List<EpubChapter> chapters;
@@ -499,6 +500,29 @@ public partial class EpubReader : IEpubReader
 		}
 
 		content = result.ToString();
+		
+		//Remove drop cap spans and add letter to the parent p tag, also add class drop-cap to the parent p tag
+		if (DropCapSpanRegex().IsMatch(content))
+		{
+			var dropCaps = DropCapSpanRegex().Matches(content);
+			foreach (var dropCap in dropCaps.Cast<Match>())
+			{
+				var removedSpan = dropCap.Value.Replace(dropCap.Groups[3].Value, dropCap.Groups[4].Value);
+				var parentP = dropCap.Groups[1].Value;
+				if (dropCap.Groups[1].Value.Contains("class"))
+				{
+					parentP = parentP.Replace(dropCap.Groups[2].Value, dropCap.Groups[2].Value + " drop-cap");
+				}
+				else
+				{
+					parentP = parentP.Replace(">"," class=\"drop-cap\">");
+				}
+				var newP = removedSpan.Replace(dropCap.Groups[1].Value, parentP);
+				
+				result.Replace(dropCap.Value, newP);
+			}
+		}
+		
 
 		
 		if (LinkTagRegex().IsMatch(content))
@@ -658,4 +682,8 @@ public partial class EpubReader : IEpubReader
 	private static partial Regex HtmlRegex();
     [GeneratedRegex("<title>(.+?)</title>")]
     private static partial Regex HtmlTitleRegex();
+    //Regex to match any span as first child of p containing a single letter, I need a group for the span to remove it, and the letter to add it to the parent p
+    [GeneratedRegex(@"(<p(?:\s+[^>]*?(?:class=[""']([^""']*)[""'])?[^>]*?)>)\s*(<span[^>]*>(\w)</span>)")]
+    private static partial Regex DropCapSpanRegex();
+    
 }
