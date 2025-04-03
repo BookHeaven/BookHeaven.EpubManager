@@ -605,7 +605,7 @@ public partial class EpubReader : IEpubReader
 		});
 
 		var results = await Task.WhenAll(tasks);
-		results = results.Where(x => x.Item1 != null && x.Item2 != null).Distinct().ToArray();
+		results = results.Where(x => x is { Item1: not null, Item2: not null }).Distinct().ToArray();
 		foreach (var (original, replacement) in results)
 		{
 			if (original != null && replacement != null)
@@ -613,6 +613,9 @@ public partial class EpubReader : IEpubReader
 				content.Replace(original, replacement);
 			}
 		}
+		// Replace padding with margin, this allows to define a minimum height to paragraphs
+		// with a drop cap so the text jumps column instead of cutting off the letter
+		content.Replace("padding", "margin");
 	}
 
 	private bool IsAboveZero(string cssValue)
