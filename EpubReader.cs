@@ -34,26 +34,38 @@ public partial class EpubReader : IEpubReader
 	private string? _coverPath;
 
 	private readonly Dictionary<Type, XmlSerializer> _serializers = [];
+	
+	private enum CssEditMode
+	{
+		Replace,
+		Add,
+		Max,
+		Remove,
+		ReplaceProperty
+	}
 
 	private readonly List<CssProperty> _customStyles =
 	[
-		new() { Property = "line-height", CssVariable= "var(--line-height)", CssUnit = "em", Mode = "add" },
-		new() { Property = "text-indent", CssVariable= "var(--text-indent)", CssUnit = "em", Mode = "replace" },
-		new() { Property = "margin-top", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = "max" },
-		new() { Property = "margin-bottom", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = "max" },
-		new() { Property = "margin", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = "max" },
-		new() { Property = "font-size", CssVariable= "1", CssUnit = "em", Mode = "max" },
-		new() { Property = "font-family", Mode = "remove" },
-		new() {Property = "widows", Mode = "remove" },
-		new() {Property = "orphans", Mode = "remove" },
+		new() { Property = "line-height", CssVariable= "var(--line-height)", CssUnit = "em", Mode = CssEditMode.Add },
+		new() { Property = "text-indent", CssVariable= "var(--text-indent)", CssUnit = "em", Mode = CssEditMode.Replace },
+		new() { Property = "margin-top", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = CssEditMode.Max },
+		new() { Property = "margin-bottom", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = CssEditMode.Max },
+		new() { Property = "margin", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = CssEditMode.Max },
+		new() { Property = "font-size", CssVariable= "1", CssUnit = "em", Mode = CssEditMode.Max },
+		new() { Property = "font-family", Mode = CssEditMode.Remove },
+		new() { Property = "widows", Mode = CssEditMode.Remove },
+		new() { Property = "orphans", Mode = CssEditMode.Remove },
+		new() { Property = "padding-top", NewProperty = "margin-top",Mode = CssEditMode.ReplaceProperty},
+		new() { Property = "padding-bottom", NewProperty = "margin-bottom",Mode = CssEditMode.ReplaceProperty}
 	];
 	
 	private class CssProperty
 	{
 		public string Property { get; set; } = null!;
+		public string NewProperty { get; set; } = null!;
 		public string? CssVariable { get; set; }
 		public string? CssUnit { get; set; }
-		public string Mode { get; set; } = null!;
+		public CssEditMode Mode { get; set; }
 	}
 
 	/// <summary>
@@ -575,28 +587,31 @@ public partial class EpubReader : IEpubReader
 			{
 				return await Task.Run(() =>
 				{
+					switch (cSsProperty.Mode)
+					{
+						case CssEditMode.Remove:
+							return ((string?)match.Value.Trim(), "");
+						case CssEditMode.ReplaceProperty:
+							return ((string?)match.Value.Trim(), (string?)match.Value.Replace(cSsProperty.Property, cSsProperty.NewProperty).Trim());
+					}
+
 					var values = match.Groups[1].Value.Split(' ').Select(v => v.Trim()).ToList();
 					var processedValues = values.Select(value =>
 					{
-						if (cSsProperty.Mode != "remove" && !IsAboveZero(value))
+						if (!IsAboveZero(value))
 						{
 							return value;
 						}
 						return cSsProperty.Mode switch
 						{
-							"replace" => $"calc({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit})",
-							"add" => $"calc({value} + ({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit}))",
-							"max" => $"max({value}, calc({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit}))",
-							"remove" => "",
+							CssEditMode.Replace => $"calc({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit})",
+							CssEditMode.Add => $"calc({value} + ({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit}))",
+							CssEditMode.Max => $"max({value}, calc({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit}))",
 							_ => value
 						};
 					});
 
-					var replacement = cSsProperty.Mode switch
-					{
-						"remove" => "",
-						_ => $"{cSsProperty.Property}: {string.Join(" ", processedValues)}"
-					};
+					var replacement = $"{cSsProperty.Property}: {string.Join(" ", processedValues)}";
 
 					return ((string?)match.Value.Trim(), (string?)replacement.Trim());
 				});
@@ -613,9 +628,6 @@ public partial class EpubReader : IEpubReader
 				content.Replace(original, replacement);
 			}
 		}
-		// Replace padding with margin, this allows to define a minimum height to paragraphs
-		// with a drop cap so the text jumps column instead of cutting off the letter
-		content.Replace("padding", "margin");
 	}
 
 	private bool IsAboveZero(string cssValue)
