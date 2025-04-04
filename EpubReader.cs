@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Serialization;
+using HtmlAgilityPack;
 
 namespace EpubManager;
 
@@ -500,69 +501,77 @@ public partial class EpubReader : IEpubReader
 	/// <returns>Processed html</returns>
 	public async Task<string> ApplyTextContentProcessing(string content)
 	{
-		StringBuilder result = new(content);
-
-		if (DivWithImageRegex().IsMatch(content))
+		var doc = new HtmlDocument();
+		doc.LoadHtml(content);
+		
+		var linkNodes = doc.DocumentNode.SelectNodes("//link[@rel='stylesheet']");
+		if (linkNodes != null)
 		{
-			var divs = DivWithImageRegex().Matches(content);
-			foreach (var div in divs.Cast<Match>())
+			foreach (var linkNode in linkNodes)
 			{
-				result.Replace(div.Groups[1].Value, "<div style=\"margin: 0 auto;text-align:center;\">");
+				linkNode.Remove();
 			}
 		}
-
-		content = result.ToString();
 		
-		//Remove drop cap spans and add letter to the parent p tag, also add class drop-cap to the parent p tag
-		if (DropCapSpanRegex().IsMatch(content))
+		
+		var divWithImageNodes = doc.DocumentNode.SelectNodes("//div[img]");
+		if (divWithImageNodes != null)
 		{
-			var dropCaps = DropCapSpanRegex().Matches(content);
-			foreach (var dropCap in dropCaps.Cast<Match>())
+			foreach (var divNode in divWithImageNodes)
 			{
-				var removedSpan = dropCap.Value.Replace(dropCap.Groups[3].Value, dropCap.Groups[4].Value);
-				var parentP = dropCap.Groups[1].Value;
-				if (dropCap.Groups[1].Value.Contains("class"))
+				divNode.SetAttributeValue("style", "margin: 0 auto;text-align:center;");
+			}
+		}
+		
+		
+		var spanNodes = doc.DocumentNode.SelectNodes("//p/span");
+		if (spanNodes != null)
+		{
+			foreach (var spanNode in spanNodes)
+			{
+				var parentP = spanNode.ParentNode;
+				if (parentP.Attributes.Contains("class"))
 				{
-					parentP = parentP.Replace(dropCap.Groups[2].Value, dropCap.Groups[2].Value + " drop-cap");
+					parentP.Attributes["class"].Value += " drop-cap";
 				}
 				else
 				{
-					parentP = parentP.Replace(">"," class=\"drop-cap\">");
+					parentP.SetAttributeValue("class", "drop-cap");
 				}
-				var newP = removedSpan.Replace(dropCap.Groups[1].Value, parentP);
-				
-				result.Replace(dropCap.Value, newP);
+				var letter = spanNode.InnerText;
+				spanNode.Remove();
+				parentP.InnerHtml = letter + parentP.InnerHtml;
 			}
 		}
 		
-
 		
-		if (LinkTagRegex().IsMatch(content))
+		var imageNodes = doc.DocumentNode.SelectNodes("//img[@src]");
+		if (imageNodes != null)
 		{
-			var links = LinkTagRegex().Matches(content).Cast<Match>();
-			foreach (var link in links)
+			foreach (var imageNode in imageNodes)
 			{
-				result.Replace(link.Value, null);
+				var src = imageNode.GetAttributeValue("src", "");
+				if (string.IsNullOrEmpty(src)) continue;
+				var imageBytes = await LoadImageAsBytes(src);
+				imageNode.SetAttributeValue("src", $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}");
+				if (imageNode.Attributes.Contains("class"))
+				{
+					imageNode.Attributes["class"].Value += " zoomable";
+				}
+				else
+				{
+					imageNode.SetAttributeValue("class", "zoomable");
+				}
+				
 			}
 		}
+		
+		
+		content = doc.DocumentNode.OuterHtml;
+
+		StringBuilder result = new(content);
 
 		await ReplaceCssProperties(result);
-
-		if(ImagesRegex().IsMatch(content)) {
-			var imageMatches = ImagesRegex().Matches(content).Cast<Match>();
-			var imageTasks = imageMatches.Select(async match =>
-			{
-				var src = match.Groups[2].Success ? match.Groups[2].Value : match.Groups[4].Value;
-				var imageBytes = await LoadImageAsBytes(src);
-				return (src, $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}");
-			});
-
-			var imageResults = await Task.WhenAll(imageTasks);
-			foreach (var (original, replacement) in imageResults)
-			{
-				result.Replace(original, replacement);
-			}
-		}
 		return result.ToString();
 
 	}
