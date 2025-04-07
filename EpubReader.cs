@@ -433,12 +433,16 @@ public partial class EpubReader : IEpubReader
 	/// <returns>Title</returns>
 	private string GetChapterTitle(string content)
 	{
-		var match = HtmlTitleRegex().Match(content);
-		if (!match.Success) return string.Empty;
-			
-		var title = WebUtility.HtmlDecode(match.Groups[1].Value);
-		return DecodeNumericEntities(title);
-
+		var document = new HtmlDocument();
+		document.LoadHtml(content);
+		
+		var titleNode = document.DocumentNode.SelectSingleNode("//title");
+		if (titleNode != null)
+		{
+			return DecodeNumericEntities(titleNode.InnerText);
+		}
+		return string.Empty;
+		
 		static string DecodeNumericEntities(string input)
 		{
 			return Regex.Replace(input, "&#([0-9]+);", match =>
@@ -456,8 +460,10 @@ public partial class EpubReader : IEpubReader
 	/// <returns>List of paths</returns>
 	private List<string> GetStylesheets(string content)
 	{
-		var links = LinkTagRegex().Matches(content);
-		return links.Select(link => link.Groups[1].Value).ToList();
+		var document = new HtmlDocument();
+		document.LoadHtml(content);
+		var linkNodes = document.DocumentNode.SelectNodes("//link[@href]");
+		return linkNodes == null ? [] : linkNodes.Select(link => link.Attributes["href"].Value).ToList();
 	}
 
 	/// <summary>
@@ -524,7 +530,7 @@ public partial class EpubReader : IEpubReader
 		}
 		
 		
-		var spanNodes = doc.DocumentNode.SelectNodes("//p/span");
+		var spanNodes = doc.DocumentNode.SelectNodes("//p/span[string-length(text()) = 1]");
 		if (spanNodes != null)
 		{
 			foreach (var spanNode in spanNodes)
@@ -545,15 +551,17 @@ public partial class EpubReader : IEpubReader
 		}
 		
 		
-		var imageNodes = doc.DocumentNode.SelectNodes("//img[@src]");
+		var imageNodes = doc.DocumentNode.SelectNodes("//img | //image");
 		if (imageNodes != null)
 		{
 			foreach (var imageNode in imageNodes)
 			{
-				var src = imageNode.GetAttributeValue("src", "");
+				var attributeName = imageNode.Name == "img" ? "src" : "href";
+
+				var src = imageNode.Attributes.FirstOrDefault(a => a.Name == attributeName || a.Name.EndsWith(attributeName))?.Value;
 				if (string.IsNullOrEmpty(src)) continue;
 				var imageBytes = await LoadImageAsBytes(src);
-				imageNode.SetAttributeValue("src", $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}");
+				imageNode.SetAttributeValue(attributeName, $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}");
 				if (imageNode.Attributes.Contains("class"))
 				{
 					imageNode.Attributes["class"].Value += " zoomable";
