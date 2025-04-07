@@ -570,14 +570,10 @@ public partial class EpubReader : IEpubReader
 				{
 					imageNode.SetAttributeValue("class", "zoomable");
 				}
-				
 			}
 		}
-		
-		
-		content = doc.DocumentNode.OuterHtml;
 
-		StringBuilder result = new(content);
+		StringBuilder result = new(doc.DocumentNode.OuterHtml);
 
 		await ReplaceCssProperties(result);
 		return result.ToString();
