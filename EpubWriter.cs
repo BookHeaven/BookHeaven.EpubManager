@@ -19,7 +19,8 @@ namespace EpubManager
     {
         public async Task ReplaceMetadata(string bookPath, EpubMetadata metadata)
 		{
-			var opf = await reader.GetOpfPath(bookPath);
+			reader.Initialize(bookPath);
+			var opf = await reader.GetOpfPath();
 			var xml = await reader.LoadFileContent(opf);
 
 
@@ -51,8 +52,9 @@ namespace EpubManager
 
         public async Task ReplaceCover(string bookPath, string newCoverPath)
         {
+	        reader.Initialize(bookPath);
             //Find cover in meta elements
-            var opfPath = await reader.GetOpfPath(bookPath);
+            var opfPath = await reader.GetOpfPath();
 			var xml = await reader.LoadFileContent(opfPath);
 
 			var package = XDocument.Parse(xml);
