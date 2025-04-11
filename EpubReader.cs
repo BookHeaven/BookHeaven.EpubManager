@@ -6,7 +6,6 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -14,6 +13,7 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Serialization;
 using HtmlAgilityPack;
+using HtmlAgilityPack.CssSelectors.NetCore;
 
 namespace EpubManager;
 
@@ -436,13 +436,10 @@ public partial class EpubReader : IEpubReader
 		var document = new HtmlDocument();
 		document.LoadHtml(content);
 		
-		var titleNode = document.DocumentNode.SelectSingleNode("//title");
-		if (titleNode != null)
-		{
-			return DecodeNumericEntities(titleNode.InnerText);
-		}
-		return string.Empty;
-		
+		//var titleNode = document.DocumentNode.SelectSingleNode("//title");
+		var titleNode = document.QuerySelector("title");
+		return titleNode != null ? DecodeNumericEntities(titleNode.InnerText) : string.Empty;
+
 		static string DecodeNumericEntities(string input)
 		{
 			return Regex.Replace(input, "&#([0-9]+);", match =>
@@ -462,7 +459,8 @@ public partial class EpubReader : IEpubReader
 	{
 		var document = new HtmlDocument();
 		document.LoadHtml(content);
-		var linkNodes = document.DocumentNode.SelectNodes("//link[@href]");
+		//var linkNodes = document.DocumentNode.SelectNodes("//link[@href]");
+		var linkNodes = document.QuerySelectorAll("link[href]");
 		return linkNodes == null ? [] : linkNodes.Select(link => link.Attributes["href"].Value).ToList();
 	}
 
@@ -510,7 +508,7 @@ public partial class EpubReader : IEpubReader
 		var doc = new HtmlDocument();
 		doc.LoadHtml(content);
 		
-		var linkNodes = doc.DocumentNode.SelectNodes("//link[@rel='stylesheet']");
+		var linkNodes = doc.QuerySelectorAll("link[rel='stylesheet']");
 		if (linkNodes != null)
 		{
 			foreach (var linkNode in linkNodes)
@@ -520,21 +518,22 @@ public partial class EpubReader : IEpubReader
 		}
 		
 		
-		var divWithImageNodes = doc.DocumentNode.SelectNodes("//div[img]");
+		var divWithImageNodes = doc.QuerySelectorAll("div > img:first-child:last-child");
 		if (divWithImageNodes != null)
 		{
 			foreach (var divNode in divWithImageNodes)
 			{
-				divNode.SetAttributeValue("style", "margin: 0 auto;text-align:center;");
+				divNode.ParentNode.SetAttributeValue("style", "margin: 0 auto;text-align:center;");
 			}
 		}
 		
 		
-		var spanNodes = doc.DocumentNode.SelectNodes("//p/span[string-length(text()) = 1]");
+		var spanNodes = doc.QuerySelectorAll("p > span:first-child");
 		if (spanNodes != null)
 		{
 			foreach (var spanNode in spanNodes)
 			{
+				if(spanNode.InnerText.Length > 1) continue;
 				var parentP = spanNode.ParentNode;
 				if (parentP.Attributes.Contains("class"))
 				{
@@ -551,7 +550,7 @@ public partial class EpubReader : IEpubReader
 		}
 		
 		
-		var imageNodes = doc.DocumentNode.SelectNodes("//img | //image");
+		var imageNodes = doc.QuerySelectorAll("img, image");
 		if (imageNodes != null)
 		{
 			foreach (var imageNode in imageNodes)
