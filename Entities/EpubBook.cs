@@ -76,10 +76,7 @@ public class SpineItem
 	public string? ParagraphClassName { get; set; }
 	public bool IsContentProcessed { get; set; } = false;
 
-	public int GetWordsPerPage(int pages)
-	{
-		return WordCount / pages;
-	}
+	public int GetWordsPerPage(int pages) => WordCount / (pages == 0 ? 1 : pages);
 }
 	
 public class Style
