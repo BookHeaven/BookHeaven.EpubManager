@@ -1,6 +1,7 @@
 ﻿using EpubManager.Entities;
 using EpubManager.XML;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -8,6 +9,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
@@ -26,13 +28,18 @@ public interface IEpubReader
 }
 
 
-public partial class EpubReader : IEpubReader
+public partial class EpubReader : IEpubReader, IDisposable
 {
-	private string _epubPath = null!;
 	private Package? _package;
 	private string? _rootFolder;
 	private readonly char[] _separator = [' ', '\n', '\r', '\t'];
 	private string? _coverPath;
+	
+	private ZipArchive? _zipArchive;
+	private readonly SemaphoreSlim _zipLock = new SemaphoreSlim(1, 1);
+	
+	private readonly ConcurrentDictionary<string, string> _contentCache = new();
+	private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
 
 	private readonly Dictionary<Type, XmlSerializer> _serializers = [];
 	
@@ -69,6 +76,14 @@ public partial class EpubReader : IEpubReader
 		public CssEditMode Mode { get; set; }
 	}
 
+	public EpubReader()
+	{
+		_serializers[typeof(Package)] = new XmlSerializer(typeof(Package));
+		_serializers[typeof(Container)] = new XmlSerializer(typeof(Container));
+		_serializers[typeof(NCX)] = new XmlSerializer(typeof(NCX));
+		_serializers[typeof(Nav)] = new XmlSerializer(typeof(Nav));
+	}
+
 	/// <summary>
 	/// Loads the epub file into memory
 	/// </summary>
@@ -80,12 +95,15 @@ public partial class EpubReader : IEpubReader
 		_package = null;
 		_rootFolder = null;
 		_coverPath = null;
+		_contentCache.Clear();
+		_imageCache.Clear();
 
-		var book = new EpubBook()
+		var book = new EpubBook
 		{
 			FilePath = path
 		};
-		_epubPath = path;
+		_zipArchive = ZipFile.OpenRead(path);
+		
 			
 		var packagePath = await GetOpfPath(path);
 
@@ -113,7 +131,6 @@ public partial class EpubReader : IEpubReader
 	/// <returns>OPF path</returns>
 	public async Task<string> GetOpfPath(string bookPath)
 	{
-		_epubPath = bookPath;
 		var container = await ReadEntryAsync<Container>("META-INF/container.xml");
 		var rootFile = container.RootFiles.RootFile.First();
 		return rootFile.FullPath;
@@ -165,8 +182,7 @@ public partial class EpubReader : IEpubReader
 	/// <exception cref="Exception"></exception>
 	private async Task<T> ReadEntryAsync<T>(string path)
 	{
-		using var file = await Task.Run(() => ZipFile.OpenRead(_epubPath));
-		var entry = file.GetEntry(GetAbsolutePath(path)!) ?? throw new Exception($"File not found inside epub. {GetAbsolutePath(path)}");
+		var entry = _zipArchive!.GetEntry(GetAbsolutePath(path)!) ?? throw new Exception($"File not found inside epub. {GetAbsolutePath(path)}");
 
 		await using var stream = entry.Open();
 		var serializer = GetSerializer<T>();
@@ -211,8 +227,30 @@ public partial class EpubReader : IEpubReader
 	/// <returns>Image as bytes</returns>
 	private async Task<byte[]> LoadImageAsBytes(string path)
 	{
-		using var file = await Task.Run(() => ZipFile.OpenRead(_epubPath));
-		var entry = file.GetEntry(GetAbsolutePath(path)!);
+		var absolutePath = GetAbsolutePath(path)!;
+    
+		if (_imageCache.TryGetValue(absolutePath, out var cachedImage))
+		{
+			return cachedImage;
+		}
+		await _zipLock.WaitAsync();
+		try
+		{
+			var entry = _zipArchive!.GetEntry(absolutePath);
+			if (entry == null) return [];
+
+			await using var stream = entry.Open();
+			using var memory = new MemoryStream();
+			await stream.CopyToAsync(memory);
+			var bytes = memory.ToArray();
+			_imageCache[absolutePath] = bytes;
+			return bytes;
+		}
+		finally
+		{
+			_zipLock.Release();
+		}
+		/*var entry = _zipArchive!.GetEntry(GetAbsolutePath(path)!);
 
 		if (entry == null)
 		{
@@ -222,7 +260,7 @@ public partial class EpubReader : IEpubReader
 		await using var stream = entry.Open();
 		using var memory = new MemoryStream();
 		await stream.CopyToAsync(memory);
-		return memory.ToArray();
+		return memory.ToArray();*/
 	}
 
 	/// <summary>
@@ -660,7 +698,28 @@ public partial class EpubReader : IEpubReader
 	/// <exception cref="Exception"></exception>
 	public async Task<string> LoadFileContent(string path)
 	{
-		using var file = await Task.Run(() => ZipFile.OpenRead(_epubPath));
+		var absolutePath = GetAbsolutePath(path)!;
+		
+		if (_contentCache.TryGetValue(absolutePath, out var cachedContent))
+		{
+			return cachedContent;
+		}
+		await _zipLock.WaitAsync();
+		try
+		{
+			var entry = _zipArchive!.GetEntry(absolutePath) ?? throw new Exception($"Could not load file: {path}");
+			await using var stream = entry.Open();
+			using var reader = new StreamReader(stream);
+			var content = await reader.ReadToEndAsync();
+			_contentCache[absolutePath] = content;
+			return content;
+		}
+		finally
+		{
+			_zipLock.Release();
+		}
+		
+		/*using var file = await Task.Run(() => ZipFile.OpenRead(_epubPath));
 
 		var entry = file.GetEntry(GetAbsolutePath(path)!) ?? throw new Exception($"Could not load file: {path}");
 
@@ -673,7 +732,7 @@ public partial class EpubReader : IEpubReader
 		catch (Exception e)
 		{
 			throw new Exception("Error loading file content", e);
-		}
+		}*/
 			
 	}
 	
@@ -712,5 +771,11 @@ public partial class EpubReader : IEpubReader
     //Regex to match any span as first child of p containing a single letter, I need a group for the span to remove it, and the letter to add it to the parent p
     [GeneratedRegex(@"(<p(?:\s+[^>]*?(?:class=[""']([^""']*)[""'])?[^>]*?)>)\s*(<span[^>]*>(\w)</span>)")]
     private static partial Regex DropCapSpanRegex();
-    
+
+    public void Dispose()
+    {
+	    _zipArchive?.Dispose();
+	    _zipLock.Dispose();
+	    GC.SuppressFinalize(this);
+    }
 }
