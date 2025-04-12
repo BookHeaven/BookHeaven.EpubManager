@@ -21,9 +21,8 @@ namespace EpubManager;
 
 public interface IEpubReader
 {
-	void Initialize(string bookPath);
 	Task<EpubBook> ReadAsync(string path, bool metadataOnly = true);
-	Task<string> GetOpfPath();
+	Task<string> GetOpfPath(string epubPath);
 	Task<string> LoadFileContent(string entryPath);
 	Task<string> ApplyTextContentProcessing(string content);
 	void Dispose();
@@ -33,7 +32,7 @@ public interface IEpubReader
 public partial class EpubReader : IEpubReader, IDisposable
 {
 	private ZipArchive? _zipArchive;
-	private SemaphoreSlim _zipLock;
+	private readonly SemaphoreSlim _zipLock = new (1,1);
 	
 	private Package? _package;
 	private string? _rootFolder;
@@ -86,32 +85,29 @@ public partial class EpubReader : IEpubReader, IDisposable
 		_serializers[typeof(Nav)] = new XmlSerializer(typeof(Nav));
 	}
 
-	public void Initialize(string path)
+	/// <summary>
+	/// Opens the epub as a zip in memory.
+	/// </summary>
+	/// <param name="path">Path to the epub file</param>
+	public void LoadEpub(string path)
 	{
-		_package = null;
-		_rootFolder = null;
-		_coverPath = null;
-		_contentCache.Clear();
-		_imageCache.Clear();
-		_zipArchive = ZipFile.OpenRead(path);
-		_zipLock = new SemaphoreSlim(1, 1);
+		
 	}
 
 	/// <summary>
-	/// Loads the epub file into memory. Already calls Initialize.
+	/// Reads the contents of an epub file. Already calls LoadEpub.
 	/// </summary>
 	/// <param name="path">Physical File path</param>
 	/// <param name="metadataOnly">Whether to only retrieve metadata or the contents as well. True by default.</param>
 	/// <returns></returns>
 	public async Task<EpubBook> ReadAsync(string path, bool metadataOnly = true)
 	{
-		Initialize(path);
 		var book = new EpubBook
 		{
 			FilePath = path
 		};
 		
-		var packagePath = await GetOpfPath();
+		var packagePath = await GetOpfPath(path);
 
 		_rootFolder = Path.GetDirectoryName(packagePath)!;
 		book.RootFolder = _rootFolder;
@@ -134,8 +130,9 @@ public partial class EpubReader : IEpubReader, IDisposable
 	/// Gets the path to the OPF file inside the epub
 	/// </summary>
 	/// <returns>OPF path</returns>
-	public async Task<string> GetOpfPath()
+	public async Task<string> GetOpfPath(string epubPath)
 	{
+		_zipArchive = ZipFile.OpenRead(epubPath);
 		var container = await ReadEntryAsync<Container>("META-INF/container.xml");
 		var rootFile = container.RootFiles.RootFile.First();
 		return rootFile.FullPath;
@@ -780,7 +777,7 @@ public partial class EpubReader : IEpubReader, IDisposable
     public void Dispose()
     {
 	    _zipArchive?.Dispose();
-	    _zipLock.Dispose();
+	    _zipLock?.Dispose();
 	    GC.SuppressFinalize(this);
     }
 }

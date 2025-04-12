@@ -9,13 +9,10 @@ public static class DependencyInjection
     /// </summary>
     /// <param name="services"></param>
     /// <param name="readerOnly">In case you only need to inject the reader</param>
-    public static IServiceCollection AddEpubManager(this IServiceCollection services, bool readerOnly = false)
+    public static IServiceCollection AddEpubManager(this IServiceCollection services)
     {
-        services.AddScoped<IEpubReader, EpubReader>();
-        if (!readerOnly)
-        {
-            services.AddScoped<IEpubWriter, EpubWriter>();
-        }
+        services.AddTransient<IEpubReader, EpubReader>();
+        services.AddTransient<IEpubWriter, EpubWriter>();
         return services;
     }
 }
