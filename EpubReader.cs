@@ -70,11 +70,11 @@ public partial class EpubReader : IEpubReader, IDisposable
 	
 	private class CssProperty
 	{
-		public string Property { get; set; } = null!;
-		public string NewProperty { get; set; } = null!;
-		public string? CssVariable { get; set; }
-		public string? CssUnit { get; set; }
-		public CssEditMode Mode { get; set; }
+		public string Property { get; init; } = null!;
+		public string NewProperty { get; init; } = null!;
+		public string? CssVariable { get; init; }
+		public string? CssUnit { get; init; }
+		public CssEditMode Mode { get; init; }
 	}
 
 	public EpubReader()
@@ -777,7 +777,7 @@ public partial class EpubReader : IEpubReader, IDisposable
     public void Dispose()
     {
 	    _zipArchive?.Dispose();
-	    _zipLock?.Dispose();
+	    _zipLock.Dispose();
 	    GC.SuppressFinalize(this);
     }
 }
