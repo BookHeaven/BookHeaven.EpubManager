@@ -19,20 +19,20 @@ using HtmlAgilityPack.CssSelectors.NetCore;
 
 namespace EpubManager;
 
-public interface IEpubReader
+public interface IEpubReader : IDisposable
 {
-	Task<EpubBook> ReadAsync(string path, bool metadataOnly = true);
+	Task<EpubBook> ReadMetadata(string path);
+	Task<EpubBook> ReadAll(string path);
 	Task<string> GetOpfPath(string epubPath);
 	Task<string> LoadFileContent(string entryPath);
 	Task<string> ApplyTextContentProcessing(string content);
-	void Dispose();
 }
 
 
-public partial class EpubReader : IEpubReader, IDisposable
+public partial class EpubReader : IEpubReader
 {
 	private ZipArchive? _zipArchive;
-	private readonly SemaphoreSlim _zipLock = new (1,1);
+	private SemaphoreSlim _zipLock;
 	
 	private Package? _package;
 	private string? _rootFolder;
@@ -85,13 +85,24 @@ public partial class EpubReader : IEpubReader, IDisposable
 		_serializers[typeof(Nav)] = new XmlSerializer(typeof(Nav));
 	}
 
+	public async Task<EpubBook> ReadMetadata(string path)
+	{
+		return await ReadAsync(path, true);
+	}
+	
+	public async Task<EpubBook> ReadAll(string path)
+	{
+		return await ReadAsync(path, false);
+	} 
+	
+
 	/// <summary>
 	/// Reads the contents of an epub file. Already calls LoadEpub.
 	/// </summary>
 	/// <param name="path">Physical File path</param>
 	/// <param name="metadataOnly">Whether to only retrieve metadata or the contents as well. True by default.</param>
 	/// <returns></returns>
-	public async Task<EpubBook> ReadAsync(string path, bool metadataOnly = true)
+	private async Task<EpubBook> ReadAsync(string path, bool metadataOnly = true)
 	{
 		var book = new EpubBook
 		{
@@ -113,6 +124,10 @@ public partial class EpubReader : IEpubReader, IDisposable
 			// Load content (spine and chapters)
 			book.Content = await LoadContent();
 		}
+		else
+		{
+			Dispose();
+		}
 			
 		return book;
 	}
@@ -124,6 +139,7 @@ public partial class EpubReader : IEpubReader, IDisposable
 	public async Task<string> GetOpfPath(string epubPath)
 	{
 		_zipArchive = ZipFile.OpenRead(epubPath);
+		_zipLock = new(1, 1);
 		var container = await ReadEntryAsync<Container>("META-INF/container.xml");
 		var rootFile = container.RootFiles.RootFile.First();
 		return rootFile.FullPath;
@@ -723,6 +739,11 @@ public partial class EpubReader : IEpubReader, IDisposable
 
     public void Dispose()
     {
+	    _rootFolder = null;
+	    _package = null;
+	    _coverPath = null;
+	    _contentCache.Clear();
+	    _customStyles.Clear();
 	    _zipArchive?.Dispose();
 	    _zipLock.Dispose();
 	    GC.SuppressFinalize(this);
