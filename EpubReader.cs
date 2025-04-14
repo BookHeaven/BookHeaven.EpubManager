@@ -21,11 +21,11 @@ namespace EpubManager;
 
 public interface IEpubReader : IDisposable
 {
-	Task<EpubBook> ReadMetadata(string path);
+	Task<EpubBook> ReadMetadataAsync(string path);
 	Task<EpubBook> ReadAll(string path);
-	Task<string> GetOpfPath(string epubPath);
-	Task<string> LoadFileContent(string entryPath);
-	Task<string> ApplyTextContentProcessing(string content);
+	Task<string> GetOpfPathAsync(string epubPath);
+	Task<string> LoadFileContentAsync(string entryPath);
+	Task<string> ApplyHtmlProcessingAsync(string content);
 }
 
 
@@ -85,7 +85,7 @@ public partial class EpubReader : IEpubReader
 		_serializers[typeof(Nav)] = new XmlSerializer(typeof(Nav));
 	}
 
-	public async Task<EpubBook> ReadMetadata(string path)
+	public async Task<EpubBook> ReadMetadataAsync(string path)
 	{
 		return await ReadAsync(path, true);
 	}
@@ -109,7 +109,7 @@ public partial class EpubReader : IEpubReader
 			FilePath = path
 		};
 		
-		var packagePath = await GetOpfPath(path);
+		var packagePath = await GetOpfPathAsync(path);
 
 		_rootFolder = Path.GetDirectoryName(packagePath)!;
 		book.RootFolder = _rootFolder;
@@ -136,7 +136,7 @@ public partial class EpubReader : IEpubReader
 	/// Gets the path to the OPF file inside the epub
 	/// </summary>
 	/// <returns>OPF path</returns>
-	public async Task<string> GetOpfPath(string epubPath)
+	public async Task<string> GetOpfPathAsync(string epubPath)
 	{
 		_zipArchive = ZipFile.OpenRead(epubPath);
 		_zipLock = new(1, 1);
@@ -295,7 +295,7 @@ public partial class EpubReader : IEpubReader
 		var cssTasks = cssFiles.Select(async item =>
 		{
 			StringBuilder cssContent = new();
-			var css = await LoadFileContent(item.Href);
+			var css = await LoadFileContentAsync(item.Href);
 			cssContent.Append(css);
 			var imports = CssImportRegex().Matches(css);
 			foreach (var import in imports.Cast<Match>())
@@ -431,7 +431,7 @@ public partial class EpubReader : IEpubReader
 		var items = await Task.WhenAll(_package!.Spine.ItemRefs.Select(async itemRef =>
 		{
 			var item = _package!.Manifest.Items.First(x => x.Id == itemRef.IdRef);
-			var content = await LoadFileContent(item.Href);
+			var content = await LoadFileContentAsync(item.Href);
 			return new SpineItem
 			{
 				Id = item.Id,
@@ -537,7 +537,7 @@ public partial class EpubReader : IEpubReader
 	/// </summary>
 	/// <param name="content">The original html</param>
 	/// <returns>Processed html</returns>
-	public async Task<string> ApplyTextContentProcessing(string content)
+	public async Task<string> ApplyHtmlProcessingAsync(string content)
 	{
 		var doc = new HtmlDocument();
 		doc.LoadHtml(content);
@@ -688,7 +688,7 @@ public partial class EpubReader : IEpubReader
 	/// <param name="path">Path inside the epub</param>
 	/// <returns>Content as string</returns>
 	/// <exception cref="Exception"></exception>
-	public async Task<string> LoadFileContent(string path)
+	public async Task<string> LoadFileContentAsync(string path)
 	{
 		var absolutePath = GetAbsolutePath(path)!;
 		
@@ -720,7 +720,7 @@ public partial class EpubReader : IEpubReader
 	/// <returns>Nav object</returns>
 	private async Task<Nav> LoadNavAsync(string path)
 	{
-		var content = await LoadFileContent(path);
+		var content = await LoadFileContentAsync(path);
 		// Deserialize content from inside body tag into Nav using XDocument
 		var doc = XDocument.Parse(content);
 		var navContent = doc.Descendants().First(x => x.Name.LocalName == "body").Descendants().First(x => x.Name.LocalName == "nav").ToString();
