@@ -15,15 +15,21 @@ namespace EpubManager
         Task ReplaceCover(string bookPath, string newCoverPath);
     }
 
-    public class EpubWriter(IEpubReader reader) : IEpubWriter
+    public class EpubWriter : IEpubWriter
     {
+	    private async Task<(string path, string xml)> LoadOpfAsync(string bookPath)
+	    {
+		    using var reader = new EpubReader();
+		    var opfPath = await reader.GetOpfPathAsync(bookPath);
+		    var xml = await reader.LoadFileContentAsync(opfPath);
+		    return (opfPath, xml);
+	    }
+	    
         public async Task ReplaceMetadata(string bookPath, EpubMetadata metadata)
-		{
-			var opf = await reader.GetOpfPathAsync(bookPath);
-			var xml = await reader.LoadFileContentAsync(opf);
-			reader.Dispose();
+        {
+	        var opf = await LoadOpfAsync(bookPath);
 
-			var package = XDocument.Parse(xml);
+			var package = XDocument.Parse(opf.xml);
 			var metadataElement = package.Descendants().First(x => x.Name.LocalName == "metadata");
 			var ns = metadataElement.Name.Namespace;
 			
@@ -39,7 +45,7 @@ namespace EpubManager
 
 			using(var archive = ZipFile.Open(bookPath, ZipArchiveMode.Update))
 			{
-				var packageEntry = archive.GetEntry(opf)!;
+				var packageEntry = archive.GetEntry(opf.path)!;
 				using(var stream = packageEntry.Open())
 				{
 					stream.SetLength(0);
@@ -52,12 +58,10 @@ namespace EpubManager
         public async Task ReplaceCover(string bookPath, string newCoverPath)
         {
             //Find cover in meta elements
-            var opfPath = await reader.GetOpfPathAsync(bookPath);
-			var xml = await reader.LoadFileContentAsync(opfPath);
-			reader.Dispose();
+            var opf = await LoadOpfAsync(bookPath);
 
-			var package = XDocument.Parse(xml);
-			var rootFolder = Path.GetDirectoryName(opfPath)!;
+			var package = XDocument.Parse(opf.xml);
+			var rootFolder = Path.GetDirectoryName(opf.path)!;
 
 			var metadataElement = package.Descendants().First(x => x.Name.LocalName == "metadata");
 
