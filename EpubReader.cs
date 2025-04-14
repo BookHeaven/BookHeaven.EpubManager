@@ -86,15 +86,6 @@ public partial class EpubReader : IEpubReader, IDisposable
 	}
 
 	/// <summary>
-	/// Opens the epub as a zip in memory.
-	/// </summary>
-	/// <param name="path">Path to the epub file</param>
-	public void LoadEpub(string path)
-	{
-		
-	}
-
-	/// <summary>
 	/// Reads the contents of an epub file. Already calls LoadEpub.
 	/// </summary>
 	/// <param name="path">Physical File path</param>
@@ -166,7 +157,6 @@ public partial class EpubReader : IEpubReader, IDisposable
 			path = path.Replace("../", "");
 		}
 
-		// Avoid calling IsNullOrEmpty and StartsWith if not necessary
 		if (!string.IsNullOrEmpty(_rootFolder) && !path.StartsWith(_rootFolder))
 		{
 			path = _rootFolder + "/" + path;
@@ -252,17 +242,6 @@ public partial class EpubReader : IEpubReader, IDisposable
 		{
 			_zipLock.Release();
 		}
-		/*var entry = _zipArchive!.GetEntry(GetAbsolutePath(path)!);
-
-		if (entry == null)
-		{
-			return [];
-		}
-
-		await using var stream = entry.Open();
-		using var memory = new MemoryStream();
-		await stream.CopyToAsync(memory);
-		return memory.ToArray();*/
 	}
 
 	/// <summary>
@@ -499,7 +478,6 @@ public partial class EpubReader : IEpubReader, IDisposable
 	{
 		var document = new HtmlDocument();
 		document.LoadHtml(content);
-		//var linkNodes = document.DocumentNode.SelectNodes("//link[@href]");
 		var linkNodes = document.QuerySelectorAll("link[href]");
 		return linkNodes == null ? [] : linkNodes.Select(link => link.Attributes["href"].Value).ToList();
 	}
@@ -568,25 +546,21 @@ public partial class EpubReader : IEpubReader, IDisposable
 		}
 		
 		
-		var spanNodes = doc.QuerySelectorAll("p > span:first-child");
-		if (spanNodes != null)
+		var dropCap = doc.QuerySelector("p > span:first-child");
+		if (dropCap is { InnerText.Length: 1 })
 		{
-			foreach (var spanNode in spanNodes)
+			var parentP = dropCap.ParentNode;
+			if (parentP.Attributes.Contains("class"))
 			{
-				if(spanNode.InnerText.Length > 1) continue;
-				var parentP = spanNode.ParentNode;
-				if (parentP.Attributes.Contains("class"))
-				{
-					parentP.Attributes["class"].Value += " drop-cap";
-				}
-				else
-				{
-					parentP.SetAttributeValue("class", "drop-cap");
-				}
-				var letter = spanNode.InnerText;
-				spanNode.Remove();
-				parentP.InnerHtml = letter + parentP.InnerHtml;
+				parentP.Attributes["class"].Value += " drop-cap";
 			}
+			else
+			{
+				parentP.SetAttributeValue("class", "drop-cap");
+			}
+			var letter = dropCap.InnerText;
+			dropCap.Remove();
+			parentP.InnerHtml = letter + parentP.InnerHtml;
 		}
 		
 		
@@ -720,21 +694,6 @@ public partial class EpubReader : IEpubReader, IDisposable
 		{
 			_zipLock.Release();
 		}
-		
-		/*using var file = await Task.Run(() => ZipFile.OpenRead(_epubPath));
-
-		var entry = file.GetEntry(GetAbsolutePath(path)!) ?? throw new Exception($"Could not load file: {path}");
-
-		try
-		{
-			await using var stream = entry.Open();
-			using var reader = new StreamReader(stream);
-			return await reader.ReadToEndAsync();
-		}
-		catch (Exception e)
-		{
-			throw new Exception("Error loading file content", e);
-		}*/
 			
 	}
 	
@@ -753,26 +712,14 @@ public partial class EpubReader : IEpubReader, IDisposable
 		return (Nav)serializer.Deserialize(new StringReader(navContent))!;
 	}
 
-	[GeneratedRegex("<link.+?href=[\"'](.+?)[\"'].*?>")]
-	private static partial Regex LinkTagRegex();
 	[GeneratedRegex(@"@import\s*[^;]+;")]
 	private static partial Regex CssImportRegex();
 	[GeneratedRegex(@"@font-face\s*{[^}]+}")]
 	private static partial Regex FontFaceRegex();
-	[GeneratedRegex("(<img.+?src=[\"'](.+?)[\"'].*?>)|(<image.+?href=[\"'](.+?)[\"'].*?>)")]
-	private static partial Regex ImagesRegex();
 	[GeneratedRegex(@"\d+\.?\d*")]
 	private static partial Regex NumberRegex();
-	//Regex to match any div with an image directly inside and has a group for the div style
-	[GeneratedRegex(@"(<div[^>]*>)<img[^>]*></div>")]
-	private static partial Regex DivWithImageRegex();
 	[GeneratedRegex("<.*?>")]
 	private static partial Regex HtmlRegex();
-    [GeneratedRegex("<title>(.+?)</title>")]
-    private static partial Regex HtmlTitleRegex();
-    //Regex to match any span as first child of p containing a single letter, I need a group for the span to remove it, and the letter to add it to the parent p
-    [GeneratedRegex(@"(<p(?:\s+[^>]*?(?:class=[""']([^""']*)[""'])?[^>]*?)>)\s*(<span[^>]*>(\w)</span>)")]
-    private static partial Regex DropCapSpanRegex();
 
     public void Dispose()
     {
