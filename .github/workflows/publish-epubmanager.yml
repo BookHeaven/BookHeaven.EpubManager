@@ -8,6 +8,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       # Checkout the repository
@@ -24,6 +27,8 @@ jobs:
       - name: Get version
         id: get-version
         run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-utils
           VERSION=$(xmllint --xpath "string(//Project/PropertyGroup/Version)" ./BookHeaven.EpubManager.csproj)
           echo "EpubManager version: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
@@ -32,6 +37,11 @@ jobs:
       - name: Publish NuGet package
         run: |
           dotnet pack ./BookHeaven.EpubManager.csproj --configuration Release --output ./packages
+          dotnet nuget add source \
+            --username ${{ github.actor }} \
+            --password ${{ secrets.GITHUB_TOKEN }} \
+            --store-password-in-clear-text \
+            --name github "https://nuget.pkg.github.com/BookHeaven/index.json"
           dotnet nuget push ./packages/BookHeaven.EpubManager.$VERSION.nupkg \
             --source "github" \
             --api-key ${{ secrets.GITHUB_TOKEN }}
