@@ -1,6 +1,4 @@
-﻿using EpubManager.Entities;
-using EpubManager.XML;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
@@ -14,10 +12,12 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Serialization;
+using BookHeaven.EpubManager.Entities;
+using BookHeaven.EpubManager.XML;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
 
-namespace EpubManager;
+namespace BookHeaven.EpubManager;
 
 public interface IEpubReader : IDisposable
 {

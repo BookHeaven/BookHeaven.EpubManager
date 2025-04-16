@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EpubManager;
+namespace BookHeaven.EpubManager;
 
 public static class DependencyInjection
 {

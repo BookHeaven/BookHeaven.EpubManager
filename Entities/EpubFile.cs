@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.IO.Compression;
 
-namespace EpubManager.Entities
+namespace BookHeaven.EpubManager.Entities
 {
 	public class EpubFile
 	{

@@ -1,13 +1,13 @@
-﻿using EpubManager.Entities;
-using System.IO;
+﻿using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using EpubManager.Extensions;
+using BookHeaven.EpubManager.Entities;
+using BookHeaven.EpubManager.Extensions;
 
-namespace EpubManager;
+namespace BookHeaven.EpubManager;
 
 public interface IEpubWriter
 {

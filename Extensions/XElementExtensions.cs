@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Xml.Linq;
 
-namespace EpubManager.Extensions;
+namespace BookHeaven.EpubManager.Extensions;
 
 public static class XElementExtensions
 {
