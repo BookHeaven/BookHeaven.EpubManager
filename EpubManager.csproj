@@ -4,6 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>default</LangVersion>
+    <PackageId>BookHeaven.EpubManager</PackageId>
+    <Authors>Guillem Garrido</Authors>
   </PropertyGroup>
 
   <ItemGroup>
