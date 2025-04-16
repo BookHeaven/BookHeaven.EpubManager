@@ -6,6 +6,7 @@
     <LangVersion>default</LangVersion>
     <PackageId>BookHeaven.EpubManager</PackageId>
     <Authors>Guillem Garrido</Authors>
+    <RepositoryUrl>https://github.com/BookHeaven/BookHeaven.EpubManager</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
