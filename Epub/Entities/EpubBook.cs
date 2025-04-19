@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Text.Json.Serialization;
 
-namespace BookHeaven.EpubManager.Entities;
+namespace BookHeaven.EpubManager.Epub.Entities;
 
 public class EpubBook
 {

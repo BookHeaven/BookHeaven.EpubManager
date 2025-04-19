@@ -1,3 +1,4 @@
+using BookHeaven.EpubManager.Epub.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BookHeaven.EpubManager;
@@ -11,7 +12,7 @@ public static class DependencyInjection
     /// <param name="readerOnly">In case you only need to inject the reader</param>
     public static IServiceCollection AddEpubManager(this IServiceCollection services)
     {
-        services.AddTransient<IEpubReader, EpubReader>();
+        services.AddTransient<IEpubReader, Epub.Services.EpubReader>();
         services.AddTransient<IEpubWriter, EpubWriter>();
         return services;
     }

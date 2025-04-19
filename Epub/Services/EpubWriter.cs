@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using BookHeaven.EpubManager.Entities;
+using BookHeaven.EpubManager.Epub.Entities;
 using BookHeaven.EpubManager.Extensions;
 
-namespace BookHeaven.EpubManager;
+namespace BookHeaven.EpubManager.Epub.Services;
 
 public interface IEpubWriter
 {

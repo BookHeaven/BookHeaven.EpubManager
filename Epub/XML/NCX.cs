@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Xml.Serialization;
 
-namespace BookHeaven.EpubManager.XML
+namespace BookHeaven.EpubManager.Epub.XML
 {
 	[XmlRoot("ncx", Namespace = "http://www.daisy.org/z3986/2005/ncx/")]
 	public class NCX

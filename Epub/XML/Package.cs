@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Xml.Serialization;
 
-namespace BookHeaven.EpubManager.XML
+namespace BookHeaven.EpubManager.Epub.XML
 {
 	[XmlRoot("package", Namespace = "http://www.idpf.org/2007/opf", IsNullable = false)]
 	public class Package
