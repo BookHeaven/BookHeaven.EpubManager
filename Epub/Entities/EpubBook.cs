@@ -37,6 +37,26 @@ public class EpubIdentifier
 
 public class Content
 {
+	public string CustomCss { get; } = @"
+	                                        :scope sup {
+		                                        font-size: 0.6em;
+		                                        line-height: normal;
+												font-weight: bold;
+	                                        }
+	                                        
+	                                        :scope .drop-cap {
+		                                        orphans: 2;
+												&::first-letter {
+	                                        		initial-letter: 2;
+	                                        		margin-inline-end: 0.3em;
+		                                        }
+		                                        
+		                                        & + p {
+	                                        		clear: both;
+		                                        }
+	                                        }
+	                                    ";
+	
 	public IReadOnlyList<Style> Styles { get; set; } = [];
 		
 	public List<SpineItem> Spine { get; set; } = [];
