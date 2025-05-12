@@ -561,24 +561,36 @@ public partial class EpubReader : IEpubReader
 			}
 		}
 		
-		
-		var dropCap = doc.QuerySelector("p > span:first-child");
-		if (dropCap is { InnerText.Length: 1 })
+		var spans = doc.QuerySelectorAll("p span:first-child");
+		foreach (var span in spans)
 		{
-			var parentP = dropCap.ParentNode;
-			if (parentP.Attributes.Contains("class"))
+			if(span is not { InnerText.Length: 1 }) continue;
+			var letter = span.InnerText;
+			var elementsToRemove = new List<HtmlNode> { span };
+
+			var parent = span.ParentNode;
+			while (parent.Name != "p")
 			{
-				parentP.Attributes["class"].Value += " drop-cap";
+				elementsToRemove.Add(parent);
+				parent = parent.ParentNode;
+			}
+			
+			if (parent.Attributes.Contains("class"))
+			{
+				parent.Attributes["class"].Value += " drop-cap";
 			}
 			else
 			{
-				parentP.SetAttributeValue("class", "drop-cap");
+				parent.SetAttributeValue("class", "drop-cap");
 			}
-			var letter = dropCap.InnerText;
-			dropCap.Remove();
-			parentP.InnerHtml = letter + parentP.InnerHtml;
+
+			foreach (var node in elementsToRemove)
+			{
+				node.Remove();
+			}
+			parent.InnerHtml = letter + parent.InnerHtml;
+			break;
 		}
-		
 		
 		var imageNodes = doc.QuerySelectorAll("img, image");
 		if (imageNodes != null)
