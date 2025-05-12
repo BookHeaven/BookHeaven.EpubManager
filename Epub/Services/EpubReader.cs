@@ -630,24 +630,26 @@ public partial class EpubReader : IEpubReader
 		var contentString = content.ToString();
 		var tasks = _customStyles.SelectMany(cSsProperty =>
 		{
-			Regex regex = new(@$"{cSsProperty.Property}:\s*([^;]+?)(?=;|}})");
+			Regex regex = new(@$"{cSsProperty.Property}:\s*([^;}}]+?)(;|}})");
 			if (!regex.IsMatch(contentString))
 			{
 				return [Task.FromResult((original: (string?)null, replacement: (string?)null))];
 			}
 
 			var matches = regex.Matches(contentString);
-			return matches.Select(async match =>
+			return matches.DistinctBy(m => m.Value).Select(async match =>
 			{
 				return await Task.Run(() =>
 				{
 					switch (cSsProperty.Mode)
 					{
 						case CssEditMode.Remove:
-							return ((string?)match.Value.Trim()+";", "");
+							return ((string?)match.Value.Trim(), "");
 						case CssEditMode.ReplaceProperty:
 							return ((string?)match.Value.Trim(), (string?)match.Value.Replace(cSsProperty.Property, cSsProperty.NewProperty).Trim());
 					}
+					
+					var delimiter = match.Groups[2].Value;
 
 					var values = match.Groups[1].Value.Split(' ').Select(v => v.Trim()).ToList();
 					var processedValues = values.Select(value =>
@@ -665,7 +667,7 @@ public partial class EpubReader : IEpubReader
 						};
 					});
 
-					var replacement = $"{cSsProperty.Property}: {string.Join(" ", processedValues)}";
+					var replacement = $"{cSsProperty.Property}: {string.Join(" ", processedValues)}{delimiter}";
 
 					return ((string?)match.Value.Trim(), (string?)replacement.Trim());
 				});
