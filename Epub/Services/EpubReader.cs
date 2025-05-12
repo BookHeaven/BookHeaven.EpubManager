@@ -632,7 +632,7 @@ public partial class EpubReader : IEpubReader
 					switch (cSsProperty.Mode)
 					{
 						case CssEditMode.Remove:
-							return ((string?)match.Value.Trim(), "");
+							return ((string?)match.Value.Trim()+";", "");
 						case CssEditMode.ReplaceProperty:
 							return ((string?)match.Value.Trim(), (string?)match.Value.Replace(cSsProperty.Property, cSsProperty.NewProperty).Trim());
 					}
