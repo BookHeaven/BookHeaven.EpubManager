@@ -23,8 +23,6 @@ public interface IEpubReader : IDisposable
 {
 	Task<EpubBook> ReadMetadataAsync(string path);
 	Task<EpubBook> ReadAll(string path);
-	Task<string> GetOpfPathAsync(string epubPath);
-	Task<string> LoadFileContentAsync(string entryPath);
 	Task<string> ApplyHtmlProcessingAsync(string content);
 }
 
@@ -32,7 +30,7 @@ public interface IEpubReader : IDisposable
 public partial class EpubReader : IEpubReader
 {
 	private ZipArchive? _zipArchive;
-	private SemaphoreSlim _zipLock;
+	private SemaphoreSlim? _zipLock;
 	
 	private Package? _package;
 	private string? _rootFolder;
@@ -87,7 +85,7 @@ public partial class EpubReader : IEpubReader
 
 	public async Task<EpubBook> ReadMetadataAsync(string path)
 	{
-		return await ReadAsync(path, true);
+		return await ReadAsync(path);
 	}
 	
 	public async Task<EpubBook> ReadAll(string path)
@@ -235,6 +233,11 @@ public partial class EpubReader : IEpubReader
 	/// <returns>Image as bytes</returns>
 	private async Task<byte[]> LoadImageAsBytes(string path)
 	{
+		if (_zipLock is null)
+		{
+			throw new Exception("EpubReader not initialized. Call GetOpfPathAsync first.");
+		}
+		
 		var absolutePath = GetAbsolutePath(path)!;
     
 		if (_imageCache.TryGetValue(absolutePath, out var cachedImage))
@@ -704,6 +707,11 @@ public partial class EpubReader : IEpubReader
 	/// <exception cref="Exception"></exception>
 	public async Task<string> LoadFileContentAsync(string path)
 	{
+		if (_zipLock is null)
+		{
+			throw new Exception("EpubReader not initialized. Call GetOpfPathAsync first.");
+		}
+		
 		var absolutePath = GetAbsolutePath(path)!;
 		
 		if (_contentCache.TryGetValue(absolutePath, out var cachedContent))
@@ -759,7 +767,7 @@ public partial class EpubReader : IEpubReader
 	    _contentCache.Clear();
 	    _customStyles.Clear();
 	    _zipArchive?.Dispose();
-	    _zipLock.Dispose();
+	    _zipLock?.Dispose();
 	    GC.SuppressFinalize(this);
     }
 }
