@@ -661,10 +661,11 @@ public partial class EpubReader : IEpubReader
 						{
 							return value;
 						}
+						
 						return cSsProperty.Mode switch
 						{
 							CssEditMode.Replace => $"calc({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit})",
-							CssEditMode.Add => $"calc({value} + ({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit}))",
+							CssEditMode.Add => $"calc({EnsureUnit(value, cSsProperty.CssUnit!)} + ({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit}))",
 							CssEditMode.Max => $"max({value}, calc({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit}))",
 							_ => value
 						};
@@ -697,6 +698,14 @@ public partial class EpubReader : IEpubReader
 			return double.Parse(numberMatch.Value) > 0;
 		}
 		return false;
+	}
+
+	private string EnsureUnit(string value, string unit)
+	{
+		if (Regex.IsMatch(value, @"[a-zA-Z%]+$"))
+			return value;
+		
+		return value + unit;
 	}
 
 	/// <summary>
