@@ -1,8 +1,16 @@
 {
   "version": "1.0.6",
-  "publicReleaseRefNames": ["refs/heads/main", "refs/heads/master", "refs/tags/*"],
+  "publicReleaseRefSpec": ["^refs/heads/main$", "^refs/tags/v\\d+\\.\\d+"],
   "cloudBuild": {
     "setVersionVariables": true,
     "buildMetadata": ""
+  },
+  "nugetPackageVersion": {
+    "semVer": 2,
+    "precision": "build"
+  },
+  "release": {
+    "tagName": "v{version}",
+    "versionIncrement": "minor"
   }
 }
