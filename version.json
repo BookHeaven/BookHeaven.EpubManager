@@ -1,0 +1,8 @@
+{
+  "version": "1.0.6",
+  "publicReleaseRefNames": ["refs/heads/main", "refs/heads/master", "refs/tags/*"],
+  "cloudBuild": {
+    "setVersionVariables": true,
+    "buildMetadata": ""
+  }
+}

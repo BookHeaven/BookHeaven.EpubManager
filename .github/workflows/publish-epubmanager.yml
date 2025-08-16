@@ -23,20 +23,23 @@ jobs:
         with:
           dotnet-version: '9.x'
 
-      # Extract version from .csproj
+      # Install Nerdbank.GitVersioning
+      - name: Install Nerdbank.GitVersioning
+        run: dotnet tool install --global nbgv
+
+      # Extract version from GitVersioning
       - name: Get version
         id: get-version
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libxml2-utils
-          VERSION=$(xmllint --xpath "string(//Project/PropertyGroup/Version)" ./BookHeaven.EpubManager.csproj)
+          VERSION=$(nbgv get-version | grep NuGetPackageVersion | cut -d ':' -f2 | xargs)
+          VERSION=${VERSION%%-*}
           echo "EpubManager version: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       # Publish EpubManager package
       - name: Publish NuGet package
         run: |
-          dotnet pack ./BookHeaven.EpubManager.csproj --configuration Release --output ./packages
+          dotnet pack ./BookHeaven.EpubManager.csproj --configuration Release --output ./packages /p:Version=$VERSION
           dotnet nuget add source \
             --username ${{ github.actor }} \
             --password ${{ secrets.GITHUB_TOKEN }} \
