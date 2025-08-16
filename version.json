@@ -1,5 +1,5 @@
-{
-    "version":  "1.0.8",
+﻿{
+    "version":  "1.0.9",
     "cloudBuild":  {
                        "setVersionVariables":  true,
                        "buildMetadata":  ""
@@ -11,5 +11,9 @@
     "release":  {
                     "tagName":  "v{version}",
                     "versionIncrement":  "minor"
-                }
+                },
+    "publicReleaseRefSpec":  [
+                                 "^refs/heads/main$",
+                                 "^refs/tags/v\\d+\\.\\d+"
+                             ]
 }
