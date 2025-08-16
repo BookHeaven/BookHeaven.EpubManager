@@ -25,10 +25,6 @@ jobs:
         with:
           dotnet-version: '9.x'
 
-      # Install Nerdbank.GitVersioning
-      - name: Install Nerdbank.GitVersioning
-        run: dotnet tool install --global nbgv
-
       # Extract version from GitVersioning
       - name: Get version
         id: get-version
