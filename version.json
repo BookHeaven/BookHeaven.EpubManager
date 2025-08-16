@@ -1,15 +1,15 @@
 {
-  "version": "1.0.7",
-  "cloudBuild": {
-    "setVersionVariables": true,
-    "buildMetadata": ""
-  },
-  "nugetPackageVersion": {
-    "semVer": 2,
-    "precision": "build"
-  },
-  "release": {
-    "tagName": "v{version}",
-    "versionIncrement": "minor"
-  }
+    "version":  "1.0.8",
+    "cloudBuild":  {
+                       "setVersionVariables":  true,
+                       "buildMetadata":  ""
+                   },
+    "nugetPackageVersion":  {
+                                "semVer":  2,
+                                "precision":  "build"
+                            },
+    "release":  {
+                    "tagName":  "v{version}",
+                    "versionIncrement":  "minor"
+                }
 }
