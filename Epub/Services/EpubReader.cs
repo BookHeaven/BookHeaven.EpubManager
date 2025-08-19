@@ -774,6 +774,7 @@ public partial class EpubReader : IEpubReader
 	    _package = null;
 	    _coverPath = null;
 	    _contentCache.Clear();
+	    _imageCache.Clear();
 	    _customStyles.Clear();
 	    _zipArchive?.Dispose();
 	    _zipLock?.Dispose();
