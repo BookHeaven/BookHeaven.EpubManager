@@ -11,8 +11,8 @@ namespace BookHeaven.EpubManager.Epub.Services;
 
 public interface IEpubWriter
 {
-	Task ReplaceMetadata(string bookPath, EpubMetadata metadata);
-	Task ReplaceCover(string bookPath, string newCoverPath);
+	Task ReplaceMetadataAsync(string bookPath, EpubMetadata metadata);
+	Task ReplaceCoverAsync(string bookPath, string newCoverPath);
 }
 
 public class EpubWriter : IEpubWriter
@@ -25,7 +25,7 @@ public class EpubWriter : IEpubWriter
 		return (opfPath, xml);
 	}
 	    
-	public async Task ReplaceMetadata(string bookPath, EpubMetadata metadata)
+	public async Task ReplaceMetadataAsync(string bookPath, EpubMetadata metadata)
 	{
 		var opf = await LoadOpfAsync(bookPath);
 
@@ -55,7 +55,7 @@ public class EpubWriter : IEpubWriter
 		}
 	}
 
-	public async Task ReplaceCover(string bookPath, string newCoverPath)
+	public async Task ReplaceCoverAsync(string bookPath, string newCoverPath)
 	{
 		//Find cover in meta elements
 		var opf = await LoadOpfAsync(bookPath);
