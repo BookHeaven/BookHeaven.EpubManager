@@ -22,7 +22,7 @@ namespace BookHeaven.EpubManager.Epub.Services;
 public interface IEpubReader : IDisposable
 {
 	Task<EpubBook> ReadMetadataAsync(string path);
-	Task<EpubBook> ReadAll(string path);
+	Task<EpubBook> ReadAllAsync(string path);
 	Task<string> ApplyHtmlProcessingAsync(string content);
 }
 
@@ -88,7 +88,7 @@ public partial class EpubReader : IEpubReader
 		return await ReadAsync(path);
 	}
 	
-	public async Task<EpubBook> ReadAll(string path)
+	public async Task<EpubBook> ReadAllAsync(string path)
 	{
 		return await ReadAsync(path, false);
 	} 
