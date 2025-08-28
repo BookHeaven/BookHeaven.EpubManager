@@ -275,12 +275,12 @@ public partial class EpubReader : IEpubReader
 			Title = metadata.Titles.First(x => !string.IsNullOrEmpty(x)),
 			Language = metadata.Languages.First(x => !string.IsNullOrEmpty(x)),
 			Identifiers = metadata.Identifiers.Select(x => new EpubIdentifier { Scheme = x.Scheme, Value = x.Value }).ToList(),
-			Authors = metadata.Creators!.Select(x => x.Name).ToList(),
-			Publisher = metadata.Publishers!.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
-			PublishDate = metadata.Dates!.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
-			Rights = metadata.Rights!.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
-			Subject = metadata.Subjects!.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
-			Description = metadata.Descriptions!.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
+			Authors = metadata.Creators?.Select(x => x.Name).ToList() ?? ["Unknown"],
+			Publisher = metadata.Publishers?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
+			PublishDate = metadata.Dates?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
+			Rights = metadata.Rights?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
+			Subject = metadata.Subjects?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
+			Description = metadata.Descriptions?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
 			Series = metadata.Meta.FirstOrDefault(x => x.Name == "calibre:series")?.Content,
 			SeriesIndex = decimal.TryParse(metadata.Meta.FirstOrDefault(x => x.Name == "calibre:series_index")?.Content, CultureInfo.InvariantCulture, out var index) ? index : null
 		};
