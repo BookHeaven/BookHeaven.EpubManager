@@ -43,16 +43,12 @@ public class EpubWriter : IEpubWriter
 		metadataElement.SetMetaItem("calibre:series", metadata.Series);
 		metadataElement.SetMetaItem("calibre:series_index", metadata.SeriesIndex?.ToString("0.##"));
 
-		using(var archive = ZipFile.Open(bookPath, ZipArchiveMode.Update))
-		{
-			var packageEntry = archive.GetEntry(opf.path)!;
-			using(var stream = packageEntry.Open())
-			{
-				stream.SetLength(0);
-				var bytes = Encoding.UTF8.GetBytes(package.ToString());
-				await stream.WriteAsync(bytes);
-			}
-		}
+		using var archive = ZipFile.Open(bookPath, ZipArchiveMode.Update);
+		var packageEntry = archive.GetEntry(opf.path)!;
+		await using var stream = packageEntry.Open();
+		stream.SetLength(0);
+		var bytes = Encoding.UTF8.GetBytes(package.ToString());
+		await stream.WriteAsync(bytes);
 	}
 
 	public async Task ReplaceCoverAsync(string bookPath, string newCoverPath)
@@ -77,16 +73,12 @@ public class EpubWriter : IEpubWriter
 			var imageAsBytes = await File.ReadAllBytesAsync(newCoverPath);
 			var coverPath = coverElement.Attribute("href")?.Value ?? null;
 			if (coverPath == null) return;
-			using (var archive = ZipFile.Open(bookPath, ZipArchiveMode.Update))
-			{
-				var coverEntry = archive.GetEntry(Path.Combine(rootFolder, coverPath))!;
-				using (var stream = coverEntry.Open())
-				{
-					stream.SetLength(0);
-					await stream.WriteAsync(imageAsBytes);
-				}
-			}
+			using var archive = ZipFile.Open(bookPath, ZipArchiveMode.Update);
+			var coverEntry = archive.GetEntry(Path.Combine(rootFolder, coverPath).Replace("\\", "/"));
+			if (coverEntry == null) return;
+			await using var stream = coverEntry.Open();
+			stream.SetLength(0);
+			await stream.WriteAsync(imageAsBytes);
 		}
-			
 	}
 }
