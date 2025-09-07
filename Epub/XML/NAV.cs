@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Xml.Serialization;
+using BookHeaven.EpubManager.Epub.Constants;
 
 namespace BookHeaven.EpubManager.Epub.XML;
 
-[XmlRoot("nav", Namespace = "http://www.w3.org/1999/xhtml")]
+[XmlRoot("nav", Namespace = Namespaces.Xhtml)]
 public class Nav
 {
     [XmlElement("ol")]

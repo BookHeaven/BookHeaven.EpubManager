@@ -1,10 +1,13 @@
-﻿using System.IO;
+﻿using System.Globalization;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using BookHeaven.EpubManager.Epub.Constants;
 using BookHeaven.EpubManager.Epub.Entities;
+using BookHeaven.EpubManager.Epub.XML;
 using BookHeaven.EpubManager.Extensions;
 
 namespace BookHeaven.EpubManager.Epub.Services;
@@ -30,18 +33,41 @@ public class EpubWriter : IEpubWriter
 		var opf = await LoadOpfAsync(bookPath);
 
 		var package = XDocument.Parse(opf.xml);
+		var version = int.TryParse(package.Root?.Attribute("version")?.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 2;
 		var metadataElement = package.Descendants().First(x => x.Name.LocalName == "metadata");
-		var ns = metadataElement.Name.Namespace;
 			
-		metadataElement.SetItem(ns, "title", metadata.Title);
-		metadataElement.SetItem(ns, "creator", metadata.Author);
-		metadataElement.SetItem(ns, "description", metadata.Description);
-		metadataElement.SetItem(ns, "language", metadata.Language);
-		metadataElement.SetItem(ns, "publisher", metadata.Publisher);
-		metadataElement.SetItem(ns, "date", metadata.PublishDate);
-			
-		metadataElement.SetMetaItem("calibre:series", metadata.Series);
-		metadataElement.SetMetaItem("calibre:series_index", metadata.SeriesIndex?.ToString("0.##"));
+		metadataElement.SetItem(Namespaces.Dc, "title", metadata.Title);
+		var authorItem = metadataElement.SetItem(Namespaces.Dc, "creator", metadata.Author);
+		metadataElement.SetItem(Namespaces.Dc, "description", metadata.Description ?? string.Empty);
+		metadataElement.SetItem(Namespaces.Dc, "language", metadata.Language);
+		metadataElement.SetItem(Namespaces.Dc, "publisher", metadata.Publisher ?? string.Empty);
+		metadataElement.SetItem(Namespaces.Dc, "date", metadata.PublishDate ?? string.Empty);
+		metadataElement.SetItem(Namespaces.Dc, "rights", metadata.Rights ?? string.Empty);
+		if (authorItem is not null)
+		{
+			var fileAs = metadata.Author;
+			if (metadata.Author.Contains(' '))
+			{
+				var parts = metadata.Author.Split(' ');
+				fileAs = $"{parts.Last()}, {string.Join(" ", parts.Take(parts.Length - 1))}";
+			}
+
+			if (version == 3)
+			{
+				metadataElement.SetMetaItem("file-as", fileAs, version, authorItem.Attribute("id")?.Value);
+			}
+			else
+			{
+				authorItem.SetAttributeValue(XName.Get("file-as", Namespaces.Opf), fileAs);
+			}
+		}
+
+		if (!string.IsNullOrWhiteSpace(metadata.Series))
+		{
+			metadataElement.SetMetaItem("calibre:series", metadata.Series, version);
+			metadataElement.SetMetaItem("calibre:series_index", metadata.SeriesIndex?.ToString("0.##", CultureInfo.InvariantCulture)!, version);
+		}
+		
 
 		using var archive = ZipFile.Open(bookPath, ZipArchiveMode.Update);
 		var packageEntry = archive.GetEntry(opf.path)!;
@@ -57,28 +83,28 @@ public class EpubWriter : IEpubWriter
 		var opf = await LoadOpfAsync(bookPath);
 
 		var package = XDocument.Parse(opf.xml);
+		var version = int.TryParse(package.Root?.Attribute("version")?.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 2;
 		var rootFolder = Path.GetDirectoryName(opf.path)!;
 
 		var metadataElement = package.Descendants().First(x => x.Name.LocalName == "metadata");
 
-		var coverId = metadataElement.Descendants().FirstOrDefault(x => x.Name.LocalName == "meta" && x.Attribute("name")?.Value == "cover")?.Attribute("content")?.Value;
-
 		//Find cover in manifest
 		var manifestElement = package.Descendants().First(x => x.Name.LocalName == "manifest");
-		var coverElement = manifestElement.Descendants().FirstOrDefault(x => x.Name.LocalName == "item" && x.Attribute("id")?.Value == coverId);
+		var coverPath = version switch
+		{
+			3 => manifestElement.Descendants().First(x => x.Attribute("properties")?.Value == "cover-image").Attribute("href")?.Value,
+			_ => manifestElement.Descendants().First(x => x.Attribute("id")?.Value == metadataElement.Descendants().FirstOrDefault(m => m.Attribute("name")?.Value == "cover")?.Attribute("content")?.Value).Attribute("href")?.Value
+		};
+		
+		if(coverPath is null) return;
 
 		//Replace cover
-		if (coverElement != null)
-		{
-			var imageAsBytes = await File.ReadAllBytesAsync(newCoverPath);
-			var coverPath = coverElement.Attribute("href")?.Value ?? null;
-			if (coverPath == null) return;
-			using var archive = ZipFile.Open(bookPath, ZipArchiveMode.Update);
-			var coverEntry = archive.GetEntry(Path.Combine(rootFolder, coverPath).Replace("\\", "/"));
-			if (coverEntry == null) return;
-			await using var stream = coverEntry.Open();
-			stream.SetLength(0);
-			await stream.WriteAsync(imageAsBytes);
-		}
+		var imageAsBytes = await File.ReadAllBytesAsync(newCoverPath);
+		using var archive = ZipFile.Open(bookPath, ZipArchiveMode.Update);
+		var coverEntry = archive.GetEntry(Path.Combine(rootFolder, coverPath).Replace("\\", "/"));
+		if (coverEntry == null) return;
+		await using var stream = coverEntry.Open();
+		stream.SetLength(0);
+		await stream.WriteAsync(imageAsBytes);
 	}
 }

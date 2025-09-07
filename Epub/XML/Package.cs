@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Xml.Serialization;
+using BookHeaven.EpubManager.Epub.Constants;
 
 namespace BookHeaven.EpubManager.Epub.XML
 {
-	[XmlRoot("package", Namespace = "http://www.idpf.org/2007/opf", IsNullable = false)]
+	[XmlRoot("package", Namespace = Namespaces.Opf, IsNullable = false)]
 	public class Package
 	{
 		[XmlAttribute("version")]
@@ -27,37 +28,37 @@ namespace BookHeaven.EpubManager.Epub.XML
 
 	public class Metadata
 	{
-		[XmlElement(ElementName = "title", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "title", Namespace = Namespaces.Dc)]
 		public List<string> Titles { get; set; } = [];
 
-		[XmlElement(ElementName = "language", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "language", Namespace = Namespaces.Dc)]
 		public List<string> Languages { get; set; } = [];
 
-		[XmlElement(ElementName = "identifier", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "identifier", Namespace = Namespaces.Dc)]
 		public List<Identifier> Identifiers { get; set; } = [];
 
-		[XmlElement(ElementName = "creator", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "creator", Namespace = Namespaces.Dc)]
 		public List<Creator>? Creators { get; set; } = [];
 
-		[XmlElement(ElementName = "contributor", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "contributor", Namespace = Namespaces.Dc)]
 		public List<Contributor>? Contributors { get; set; } = [];
 
-		[XmlElement(ElementName = "publisher", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "publisher", Namespace = Namespaces.Dc)]
 		public List<string>? Publishers { get; set; } = [];
 
-		[XmlElement(ElementName = "date", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "date", Namespace = Namespaces.Dc)]
 		public List<string?>? Dates { get; set; } = [];
 
-		[XmlElement(ElementName = "rights", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "rights", Namespace = Namespaces.Dc)]
 		public List<string>? Rights { get; set; } = [];
 
-		[XmlElement(ElementName = "subject", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "subject", Namespace = Namespaces.Dc)]
 		public List<string>? Subjects { get; set; } = [];
 
-		[XmlElement(ElementName = "type", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "type", Namespace = Namespaces.Dc)]
 		public List<string>? Types { get; set; } = [];
 
-		[XmlElement(ElementName = "description", Namespace = "http://purl.org/dc/elements/1.1/")]
+		[XmlElement(ElementName = "description", Namespace = Namespaces.Dc)]
 		public List<string>? Descriptions { get; set; } = [];
 
 		[XmlElement("meta")]
@@ -93,7 +94,7 @@ namespace BookHeaven.EpubManager.Epub.XML
 	{
 		[XmlAttribute(AttributeName = "id")]
 		public string Id { get; set; } = null!;
-		[XmlAttribute(Namespace = "http://www.idpf.org/2007/opf", AttributeName = "scheme")]
+		[XmlAttribute(Namespace = Namespaces.Opf, AttributeName = "scheme")]
 		public string Scheme { get; set; } = null!;
 		[XmlText]
 		public string Value { get; set; } = null!;
@@ -102,10 +103,16 @@ namespace BookHeaven.EpubManager.Epub.XML
 	public class Meta
 	{
 		[XmlAttribute("name")]
-		public string Name { get; set; } = null!;
+		public string? Name { get; set; }
+		
+		[XmlAttribute("property")]
+		public string? Property { get; set; }
 
 		[XmlAttribute("content")]
-		public string Content { get; set; } = null!;
+		public string? Content { get; set; }
+		
+		[XmlText]
+		public string? Value { get; set; }
 	}
 
 	public class Manifest

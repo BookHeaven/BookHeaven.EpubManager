@@ -9,7 +9,7 @@ public class EpubBook
 	public string FilePath { get; set; } = null!;
 	public string RootFolder { get; set; } = null!;
 	public byte[]? Cover { get; set; }
-	public EpubMetadata Metadata { get; set; } = new EpubMetadata();
+	public EpubMetadata Metadata { get; set; } = new();
 	public Content Content { get; set; } = new();
 }
 

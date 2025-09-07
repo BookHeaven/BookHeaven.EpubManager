@@ -1,37 +1,54 @@
 using System.Linq;
 using System.Xml.Linq;
+using BookHeaven.EpubManager.Epub.Constants;
 
 namespace BookHeaven.EpubManager.Extensions;
 
 public static class XElementExtensions
 {
-    public static void SetItem(this XElement parentElement, XNamespace ns, string elementName, string? value)
+    public static XElement? SetItem(this XElement parentElement, XNamespace ns, string elementName, string value, int version = 2)
 	{
-		if(string.IsNullOrEmpty(value))
+		if(string.IsNullOrWhiteSpace(value))
 		{
-			return;
+			return null;
 		}
-		XElement? element = parentElement.Descendants().FirstOrDefault(x => x.Name.LocalName == elementName);
+		var element = parentElement.Descendants().FirstOrDefault(x => x.Name.LocalName == elementName);
 		if(element == null)
 		{
 			element = new XElement(ns + elementName);
 			parentElement.Add(element);
 		}
 		element.Value = value;
+		if (version != 3) return element;
+		if(element.Attribute("id") == null)
+		{
+			element.SetAttributeValue(XName.Get("id"), $"{elementName}");
+		}
+		return element;
 	}
     
-    public static void SetMetaItem(this XElement parentElement, string elementName, string? value)
+    public static void SetMetaItem(this XElement parentElement, string elementName, string value, int version, string? refines = null)
 	{
-		if(string.IsNullOrEmpty(value))
+		var element = parentElement.Descendants().FirstOrDefault(x => x.Name.LocalName == "meta" && x.Attribute("name")?.Value == elementName || x.Attribute("property")?.Value == elementName);
+		element?.Remove();
+
+		
+		element = new XElement(XName.Get("meta", Namespaces.Opf));
+			
+		if (version == 3)
 		{
-			return;
+			element.SetAttributeValue(XName.Get("property"), elementName);
+			if (!string.IsNullOrWhiteSpace(refines))
+			{
+				element.SetAttributeValue(XName.Get("refines"), $"#{refines}");
+			}
+			element.Value = value;
 		}
-		var element = parentElement.Descendants().FirstOrDefault(x => x.Name.LocalName == "meta" && x.Attribute("name")?.Value == elementName);
-		if(element == null)
+		else
 		{
-			element = new XElement("meta", new XAttribute("name", elementName), new XAttribute("content", value));
-			parentElement.Add(element);
+			element.SetAttributeValue(XName.Get("name"), elementName);
+			element.SetAttributeValue(XName.Get("content"), value);
 		}
-		element.Value = value;
+		parentElement.Add(element);
 	}
 }

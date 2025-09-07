@@ -14,6 +14,7 @@ using System.Xml.Linq;
 using System.Xml.Serialization;
 using BookHeaven.EpubManager.Epub.Entities;
 using BookHeaven.EpubManager.Epub.XML;
+using BookHeaven.EpubManager.Extensions;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
 
@@ -281,8 +282,8 @@ public partial class EpubReader : IEpubReader
 			Rights = metadata.Rights?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
 			Subject = metadata.Subjects?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
 			Description = metadata.Descriptions?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
-			Series = metadata.Meta.FirstOrDefault(x => x.Name == "calibre:series")?.Content,
-			SeriesIndex = decimal.TryParse(metadata.Meta.FirstOrDefault(x => x.Name == "calibre:series_index")?.Content, CultureInfo.InvariantCulture, out var index) ? index : null
+			Series = metadata.GetMetaValue("calibre:series"),
+			SeriesIndex = decimal.TryParse(metadata.GetMetaValue("calibre:series_index"), CultureInfo.InvariantCulture, out var index) ? index : null
 		};
 	}
 

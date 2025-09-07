@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Xml.Serialization;
+using BookHeaven.EpubManager.Epub.Constants;
 
 namespace BookHeaven.EpubManager.Epub.XML
 {
-	[XmlRoot("container", Namespace = "urn:oasis:names:tc:opendocument:xmlns:container", IsNullable = false)]
+	[XmlRoot("container", Namespace = Namespaces.Container, IsNullable = false)]
 	public class Container
 	{
 		[XmlElement("rootfiles")]
