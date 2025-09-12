@@ -206,7 +206,7 @@ public partial class EpubReader : IEpubReader
 		}
 		catch (Exception e)
 		{
-			throw new Exception("Error deserializing entry", e);
+			throw new Exception($"Error deserializing entry: {GetAbsolutePath(path)}", e);
 		}
 	}
 
@@ -217,11 +217,11 @@ public partial class EpubReader : IEpubReader
 	private async Task<byte[]?> LoadCoverImageAsBytesAsync()
 	{
 		var cover = 
-			_package!.Manifest.Items.FirstOrDefault(item => item.Id == _package!.Metadata.Meta.FirstOrDefault(x => x.Name == "cover")?.Content) 
-			?? _package.Manifest.Items.FirstOrDefault(x => x.Properties == "cover-image");
+			_package?.Manifest.Items.FirstOrDefault(item => item.Id == _package?.Metadata.Meta.FirstOrDefault(x => x.Name == "cover")?.Content) 
+			?? _package?.Manifest.Items.FirstOrDefault(x => x.Properties == "cover-image");
 		if(cover is null)
 		{
-			throw new Exception("Cover not found");
+			throw new Exception("Cover path not found");
 		}
 
 		return await LoadImageAsBytes(cover.Href);
@@ -274,7 +274,7 @@ public partial class EpubReader : IEpubReader
 		return new EpubMetadata
 		{
 			Title = metadata.Titles.First(x => !string.IsNullOrEmpty(x)),
-			Language = metadata.Languages.First(x => !string.IsNullOrEmpty(x)),
+			Language = metadata.Languages.FirstOrDefault(x => !string.IsNullOrEmpty(x)) ?? string.Empty,
 			Identifiers = metadata.Identifiers.Select(x => new EpubIdentifier { Scheme = x.Scheme, Value = x.Value }).ToList(),
 			Authors = metadata.Creators?.Select(x => x.Name).ToList() ?? ["Unknown"],
 			Publisher = metadata.Publishers?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
