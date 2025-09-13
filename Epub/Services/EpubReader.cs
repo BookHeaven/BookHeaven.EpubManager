@@ -110,22 +110,29 @@ public partial class EpubReader : IEpubReader
 		
 		var packagePath = await GetOpfPathAsync(path);
 
-		_rootFolder = Path.GetDirectoryName(packagePath)!;
-		book.RootFolder = _rootFolder;
-
-		_package = await ReadEntryAsync<Package>(packagePath);
-
-		book.Cover = await LoadCoverImageAsBytesAsync();
-		book.Metadata = MapMetadata(_package.Metadata);
-
-		if (!metadataOnly)
+		try
 		{
-			// Load content (spine and chapters)
-			book.Content = await LoadContent();
+			_rootFolder = Path.GetDirectoryName(packagePath)!;
+			book.RootFolder = _rootFolder;
+
+			_package = await ReadEntryAsync<Package>(packagePath);
+
+			book.Cover = await LoadCoverImageAsBytesAsync();
+			book.Metadata = MapMetadata(_package.Metadata);
+
+			if (!metadataOnly)
+			{
+				// Load content (spine and chapters)
+				book.Content = await LoadContent();
+			}
 		}
-		else
+		catch (Exception e)
 		{
-			Dispose();
+			throw new Exception("Error reading epub file", e);
+		}
+		finally
+		{
+			if(metadataOnly) Dispose();
 		}
 			
 		return book;
