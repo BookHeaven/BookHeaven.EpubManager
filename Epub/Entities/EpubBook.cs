@@ -7,7 +7,6 @@ namespace BookHeaven.EpubManager.Epub.Entities;
 public class EpubBook
 {
 	public string FilePath { get; set; } = null!;
-	public string RootFolder { get; set; } = null!;
 	public byte[]? Cover { get; set; }
 	public EpubMetadata Metadata { get; set; } = new();
 	public Content Content { get; set; } = new();
@@ -37,52 +36,11 @@ public class EpubIdentifier
 
 public class Content
 {
-	public string CustomCss { get; } = @"
-	                                        :scope sup {
-		                                        font-size: 0.6em;
-		                                        line-height: normal;
-												font-weight: bold;
-	                                        }
-	                                        
-	                                        :scope .drop-cap {
-		                                        orphans: 2;
-												&::first-letter {
-	                                        		initial-letter: 2;
-	                                        		margin-inline-end: 0.3em;
-		                                        }
-		                                        
-		                                        & + p {
-	                                        		clear: both;
-		                                        }
-	                                        }
-	                                    ";
-	
 	public IReadOnlyList<Style> Styles { get; set; } = [];
 		
 	public List<SpineItem> Spine { get; set; } = [];
 	
 	public List<EpubChapter> TableOfContents { get; set; } = [];
-	
-	public EpubChapter? GetChapterFromTableOfContents(string? itemId)
-	{
-		return itemId is null ? null : GetTitle(TableOfContents);
-
-		// Search recursively for the title of the chapter with the specified item id
-		EpubChapter? GetTitle(List<EpubChapter> chapters)
-		{
-			foreach (var chapter in chapters)
-			{
-				if (chapter.ItemId == itemId)
-					return chapter;
-				var title = GetTitle(chapter.Chapters);
-				if (title != null)
-					return title;
-			}
-			return null;
-		}
-	}
-
-	public int GetWordCount(int? untilChapterIndex = null) => Spine.Take((int)(untilChapterIndex != null ? untilChapterIndex : Spine.Count)).Sum(c => c.WordCount);
 }
 
 public class SpineItem
@@ -94,9 +52,6 @@ public class SpineItem
 	public int WordCount { get; set; }
 	public List<string> Styles { get; set; } = [];
 	public string? ParagraphClassName { get; set; }
-	public bool IsContentProcessed { get; set; } = false;
-
-	public int GetWordsPerPage(int pages) => WordCount / (pages == 0 ? 1 : pages);
 }
 	
 public class Style
@@ -111,15 +66,4 @@ public class EpubChapter
 	public string? Title { get; set; }
 	[JsonIgnore]
 	public List<EpubChapter> Chapters { get; set; } = [];
-
-	
-	public bool ContainsChapter(string? itemId)
-	{
-		return itemId is not null && Contains(Chapters);
-
-		bool Contains(List<EpubChapter> chapters)
-		{
-			return chapters.Any(chapter => chapter.ItemId == itemId || Contains(chapter.Chapters));
-		}
-	}
 }
