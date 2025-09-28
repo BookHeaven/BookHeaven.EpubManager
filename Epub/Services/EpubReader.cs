@@ -12,23 +12,18 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Serialization;
+using BookHeaven.EpubManager.Abstractions;
+using BookHeaven.EpubManager.Entities;
 using BookHeaven.EpubManager.Epub.Entities;
 using BookHeaven.EpubManager.Epub.XML;
 using BookHeaven.EpubManager.Extensions;
+using BookHeaven.EpubManager.Extensions.Mapping;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
+using Content = BookHeaven.EpubManager.Epub.Entities.Content;
 
 namespace BookHeaven.EpubManager.Epub.Services;
-
-public interface IEpubReader : IDisposable
-{
-	Task<EpubBook> ReadMetadataAsync(string path);
-	Task<EpubBook> ReadAllAsync(string path);
-	Task<string> ApplyHtmlProcessingAsync(string content);
-}
-
-
-public partial class EpubReader : IEpubReader
+public partial class EpubReader : IEbookReader
 {
 	private ZipArchive? _zipArchive;
 	private SemaphoreSlim? _zipLock;
@@ -84,12 +79,12 @@ public partial class EpubReader : IEpubReader
 		_serializers[typeof(Nav)] = new XmlSerializer(typeof(Nav));
 	}
 
-	public async Task<EpubBook> ReadMetadataAsync(string path)
+	public async Task<Ebook> ReadMetadataAsync(string path)
 	{
 		return await ReadAsync(path);
 	}
 	
-	public async Task<EpubBook> ReadAllAsync(string path)
+	public async Task<Ebook> ReadAllAsync(string path)
 	{
 		return await ReadAsync(path, false);
 	} 
@@ -101,9 +96,9 @@ public partial class EpubReader : IEpubReader
 	/// <param name="path">Physical File path</param>
 	/// <param name="metadataOnly">Whether to only retrieve metadata or the contents as well. True by default.</param>
 	/// <returns></returns>
-	private async Task<EpubBook> ReadAsync(string path, bool metadataOnly = true)
+	private async Task<Ebook> ReadAsync(string path, bool metadataOnly = true)
 	{
-		var book = new EpubBook
+		var epubBook = new EpubBook
 		{
 			FilePath = path
 		};
@@ -113,17 +108,15 @@ public partial class EpubReader : IEpubReader
 		try
 		{
 			_rootFolder = Path.GetDirectoryName(packagePath)!;
-			book.RootFolder = _rootFolder;
-
 			_package = await ReadEntryAsync<Package>(packagePath);
 
-			book.Cover = await LoadCoverImageAsBytesAsync();
-			book.Metadata = MapMetadata(_package.Metadata);
+			epubBook.Cover = await LoadCoverImageAsBytesAsync();
+			epubBook.Metadata = MapMetadata(_package.Metadata);
 
 			if (!metadataOnly)
 			{
 				// Load content (spine and chapters)
-				book.Content = await LoadContent();
+				epubBook.Content = await LoadContent();
 			}
 		}
 		catch (Exception e)
@@ -135,7 +128,7 @@ public partial class EpubReader : IEpubReader
 			if(metadataOnly) Dispose();
 		}
 			
-		return book;
+		return epubBook.ToEbook();
 	}
 
 	/// <summary>
@@ -477,14 +470,14 @@ public partial class EpubReader : IEpubReader
 	/// </summary>
 	/// <param name="content">Html</param>
 	/// <returns>Title</returns>
-	private string GetChapterTitle(string content)
+	private string? GetChapterTitle(string content)
 	{
 		var document = new HtmlDocument();
 		document.LoadHtml(content);
 		
 		//var titleNode = document.DocumentNode.SelectSingleNode("//title");
 		var titleNode = document.QuerySelector("title");
-		return titleNode != null ? DecodeNumericEntities(titleNode.InnerText) : string.Empty;
+		return titleNode != null ? DecodeNumericEntities(titleNode.InnerText) : null;
 
 		static string DecodeNumericEntities(string input)
 		{
