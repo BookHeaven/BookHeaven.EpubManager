@@ -1,6 +1,6 @@
 ﻿namespace BookHeaven.EpubManager.Epub.Constants;
 
-public static class Namespaces
+internal static class Namespaces
 {
     public const string Opf = "http://www.idpf.org/2007/opf";
     public const string Dc = "http://purl.org/dc/elements/1.1/";

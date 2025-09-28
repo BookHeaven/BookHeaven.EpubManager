@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace BookHeaven.EpubManager.Epub.Entities;
 
-public class EpubBook
+internal class EpubBook
 {
 	public string FilePath { get; set; } = null!;
 	public byte[]? Cover { get; set; }
@@ -12,7 +12,7 @@ public class EpubBook
 	public Content Content { get; set; } = new();
 }
 
-public class EpubMetadata
+internal class EpubMetadata
 {
 	public string Title { get; set; } = null!;
 	public string Language { get; set; } = null!;
@@ -28,13 +28,13 @@ public class EpubMetadata
 	public decimal? SeriesIndex { get; set; }
 }
 
-public class EpubIdentifier
+internal class EpubIdentifier
 {
 	public string Value { get; set; } = null!;
 	public string Scheme { get; set; } = null!;
 }
 
-public class Content
+internal class Content
 {
 	public IReadOnlyList<Style> Styles { get; set; } = [];
 		
@@ -43,7 +43,7 @@ public class Content
 	public List<EpubChapter> TableOfContents { get; set; } = [];
 }
 
-public class SpineItem
+internal class SpineItem
 {
 	public string Id { get; set; } = null!;
 	public string? Title { get; set; }
@@ -54,13 +54,13 @@ public class SpineItem
 	public string? ParagraphClassName { get; set; }
 }
 	
-public class Style
+internal class Style
 {
 	public string Name { get; set; } = null!;
 	public string Content { get; set; } = null!;
 }
 
-public class EpubChapter
+internal class EpubChapter
 {
 	public string? ItemId { get; set; }
 	public string? Title { get; set; }

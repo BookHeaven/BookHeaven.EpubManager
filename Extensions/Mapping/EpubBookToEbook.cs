@@ -6,7 +6,7 @@ using Content = BookHeaven.EpubManager.Entities.Content;
 
 namespace BookHeaven.EpubManager.Extensions.Mapping;
 
-public static class EpubBookToEbook
+internal static class EpubBookToEbook
 {
     public static Ebook ToEbook(this EpubBook epubBook)
     {
