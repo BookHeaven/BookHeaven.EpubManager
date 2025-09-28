@@ -5,16 +5,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using BookHeaven.EpubManager.Entities;
 using BookHeaven.EpubManager.Epub.Constants;
-using BookHeaven.EpubManager.Epub.Entities;
-using BookHeaven.EpubManager.Epub.XML;
 using BookHeaven.EpubManager.Extensions;
 
 namespace BookHeaven.EpubManager.Epub.Services;
 
 public interface IEpubWriter
 {
-	Task ReplaceMetadataAsync(string bookPath, EpubMetadata metadata);
+	Task ReplaceMetadataAsync(string bookPath, Ebook ebook);
 	Task ReplaceCoverAsync(string bookPath, string newCoverPath);
 }
 
@@ -28,7 +27,7 @@ public class EpubWriter : IEpubWriter
 		return (opfPath, xml);
 	}
 	    
-	public async Task ReplaceMetadataAsync(string bookPath, EpubMetadata metadata)
+	public async Task ReplaceMetadataAsync(string bookPath, Ebook ebook)
 	{
 		var opf = await LoadOpfAsync(bookPath);
 
@@ -36,19 +35,19 @@ public class EpubWriter : IEpubWriter
 		var version = int.TryParse(package.Root?.Attribute("version")?.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 2;
 		var metadataElement = package.Descendants().First(x => x.Name.LocalName == "metadata");
 			
-		metadataElement.SetItem(Namespaces.Dc, "title", metadata.Title);
-		var authorItem = metadataElement.SetItem(Namespaces.Dc, "creator", metadata.Author);
-		metadataElement.SetItem(Namespaces.Dc, "description", metadata.Description ?? string.Empty);
-		metadataElement.SetItem(Namespaces.Dc, "language", metadata.Language);
-		metadataElement.SetItem(Namespaces.Dc, "publisher", metadata.Publisher ?? string.Empty);
-		metadataElement.SetItem(Namespaces.Dc, "date", metadata.PublishDate ?? string.Empty);
-		metadataElement.SetItem(Namespaces.Dc, "rights", metadata.Rights ?? string.Empty);
+		metadataElement.SetItem(Namespaces.Dc, "title", ebook.Title);
+		var authorItem = metadataElement.SetItem(Namespaces.Dc, "creator", ebook.Author);
+		metadataElement.SetItem(Namespaces.Dc, "description", ebook.Synopsis ?? string.Empty);
+		metadataElement.SetItem(Namespaces.Dc, "language", ebook.Language);
+		metadataElement.SetItem(Namespaces.Dc, "publisher", ebook.Publisher ?? string.Empty);
+		metadataElement.SetItem(Namespaces.Dc, "date", ebook.PublishDate ?? string.Empty);
+		//metadataElement.SetItem(Namespaces.Dc, "rights", ebook.Rights ?? string.Empty);
 		if (authorItem is not null)
 		{
-			var fileAs = metadata.Author;
-			if (metadata.Author.Contains(' '))
+			var fileAs = ebook.Author;
+			if (ebook.Author.Contains(' '))
 			{
-				var parts = metadata.Author.Split(' ');
+				var parts = ebook.Author.Split(' ');
 				fileAs = $"{parts.Last()}, {string.Join(" ", parts.Take(parts.Length - 1))}";
 			}
 
@@ -62,10 +61,10 @@ public class EpubWriter : IEpubWriter
 			}
 		}
 
-		if (!string.IsNullOrWhiteSpace(metadata.Series))
+		if (!string.IsNullOrWhiteSpace(ebook.Series))
 		{
-			metadataElement.SetMetaItem("calibre:series", metadata.Series, version);
-			metadataElement.SetMetaItem("calibre:series_index", metadata.SeriesIndex?.ToString("0.##", CultureInfo.InvariantCulture)!, version);
+			metadataElement.SetMetaItem("calibre:series", ebook.Series, version);
+			metadataElement.SetMetaItem("calibre:series_index", ebook.SeriesIndex?.ToString("0.##", CultureInfo.InvariantCulture)!, version);
 		}
 		
 
