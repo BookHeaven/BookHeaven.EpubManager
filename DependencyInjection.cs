@@ -1,5 +1,7 @@
 using BookHeaven.EpubManager.Abstractions;
+using BookHeaven.EpubManager.Enums;
 using BookHeaven.EpubManager.Epub.Services;
+using BookHeaven.EpubManager.Pdf.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BookHeaven.EpubManager;
@@ -12,8 +14,24 @@ public static class DependencyInjection
     /// <param name="services"></param>
     public static IServiceCollection AddEpubManager(this IServiceCollection services)
     {
-        services.AddTransient<IEbookReader, EpubReader>();
-        services.AddTransient<IEpubWriter, EpubWriter>();
+        services.AddReaders();
+        services.AddWriters();
+        services.AddTransient<EbookManagerProvider>();
+        return services;
+    }
+
+    private static IServiceCollection AddReaders(this IServiceCollection services)
+    {
+        services.AddKeyedTransient<IEbookReader, EpubReader>(Format.Epub);
+        services.AddKeyedTransient<IEbookReader, PdfReader>(Format.Pdf);
+        
+        return services;
+    }
+    
+    private static IServiceCollection AddWriters(this IServiceCollection services)
+    {
+        services.AddKeyedTransient<IEbookWriter, EpubWriter>(Format.Epub);
+        
         return services;
     }
 }
