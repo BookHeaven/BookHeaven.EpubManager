@@ -7,7 +7,6 @@ namespace BookHeaven.EpubManager.Entities;
 public class Ebook
 {
     public Format Format { get; set; }
-    public string FilePath { get; set; } = null!;
     public string Title { get; set; } = null!;
     public string? Synopsis { get; set; }
     public string Author { get; set; } = null!;
