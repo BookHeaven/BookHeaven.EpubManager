@@ -12,7 +12,7 @@ public static class DependencyInjection
     /// Registers the EpubManager services
     /// </summary>
     /// <param name="services"></param>
-    public static IServiceCollection AddEpubManager(this IServiceCollection services)
+    public static IServiceCollection AddEbookManager(this IServiceCollection services)
     {
         services.AddReaders();
         services.AddWriters();
@@ -20,18 +20,15 @@ public static class DependencyInjection
         return services;
     }
 
-    private static IServiceCollection AddReaders(this IServiceCollection services)
+    private static void AddReaders(this IServiceCollection services)
     {
         services.AddKeyedTransient<IEbookReader, EpubReader>(Format.Epub);
         services.AddKeyedTransient<IEbookReader, PdfReader>(Format.Pdf);
-        
-        return services;
     }
     
-    private static IServiceCollection AddWriters(this IServiceCollection services)
+    private static void AddWriters(this IServiceCollection services)
     {
         services.AddKeyedTransient<IEbookWriter, EpubWriter>(Format.Epub);
-        
-        return services;
+        services.AddKeyedTransient<IEbookWriter, PdfWriter>(Format.Pdf);
     }
 }
