@@ -5,19 +5,19 @@ using BookHeaven.EpubManager.Epub.Constants;
 namespace BookHeaven.EpubManager.Epub.XML;
 
 [XmlRoot("nav", Namespace = Namespaces.Xhtml)]
-internal class Nav
+public class Nav
 {
     [XmlElement("ol")]
     public List<NavOl> ChapterList { get; set; } = [];
 }
 
-internal class NavOl
+public class NavOl
 {
     [XmlElement("li")]
     public List<NavLi> Chapter { get; set; } = [];
 }
 
-internal class NavLi
+public class NavLi
 {
     [XmlElement("a")]
     public NavA Link { get; set; } = null!;
@@ -25,7 +25,7 @@ internal class NavLi
     public List<NavOl> ChapterList { get; set; } = [];
 }
 
-internal class NavA
+public class NavA
 {
     [XmlAttribute("href")]
     public string Href { get; set; } = null!;

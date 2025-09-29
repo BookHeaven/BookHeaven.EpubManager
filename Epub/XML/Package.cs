@@ -5,7 +5,7 @@ using BookHeaven.EpubManager.Epub.Constants;
 namespace BookHeaven.EpubManager.Epub.XML;
 
 [XmlRoot("package", Namespace = Namespaces.Opf, IsNullable = false)]
-internal class Package
+public class Package
 {
 	[XmlAttribute("version")]
 	public string Version { get; set; } = null!;
@@ -26,7 +26,7 @@ internal class Package
 	public Guide? Guide { get; set; }
 }
 
-internal class Metadata
+public class Metadata
 {
 	[XmlElement(ElementName = "title", Namespace = Namespaces.Dc)]
 	public List<string> Titles { get; set; } = [];
@@ -66,7 +66,7 @@ internal class Metadata
 
 }
 
-internal class Creator
+public class Creator
 {
 	[XmlAttribute("file-as")]
 	public string? FileAs { get; set; }
@@ -78,7 +78,7 @@ internal class Creator
 	public string? Role { get; set; }
 }
 
-internal class Contributor
+public class Contributor
 {
 	[XmlAttribute("file-as")]
 	public string? FileAs { get; set; }
@@ -90,7 +90,7 @@ internal class Contributor
 	public string? Role { get; set; }
 }
 
-internal class Identifier
+public class Identifier
 {
 	[XmlAttribute(AttributeName = "id")]
 	public string Id { get; set; } = null!;
@@ -100,7 +100,7 @@ internal class Identifier
 	public string Value { get; set; } = null!;
 }
 
-internal class Meta
+public class Meta
 {
 	[XmlAttribute("name")]
 	public string? Name { get; set; }
@@ -115,13 +115,13 @@ internal class Meta
 	public string? Value { get; set; }
 }
 
-internal class Manifest
+public class Manifest
 {
 	[XmlElement("item")]
 	public List<Item> Items { get; set; } = null!;
 }
 
-internal class Item
+public class Item
 {
 	[XmlAttribute("id")]
 	public string Id { get; set; } = null!;
@@ -136,7 +136,7 @@ internal class Item
 	public string? Properties { get; set; }
 }
 
-internal class Spine
+public class Spine
 {
 	[XmlAttribute("toc")]
 	public string? Toc { get; set; }
@@ -145,7 +145,7 @@ internal class Spine
 	public List<ItemRef> ItemRefs { get; set; } = [];
 }
 
-internal class ItemRef
+public class ItemRef
 {
 	[XmlAttribute("idref")]
 	public string IdRef { get; set; } = null!;
@@ -154,13 +154,13 @@ internal class ItemRef
 	public string Linear { get; set; } = null!;
 }
 
-internal class Guide
+public class Guide
 {
 	[XmlElement("reference")]
 	public List<Reference> References { get; set; } = [];
 }
 
-internal class Reference
+public class Reference
 {
 	[XmlAttribute("href")]
 	public string Href { get; set; } = null!;

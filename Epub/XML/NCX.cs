@@ -5,7 +5,7 @@ using BookHeaven.EpubManager.Epub.Constants;
 namespace BookHeaven.EpubManager.Epub.XML;
 
 [XmlRoot("ncx", Namespace = Namespaces.Ncx)]
-internal class NCX
+public class NCX
 {
 	[XmlElement("head")]
 	public NCXHead Head { get; set; } = null!;
@@ -29,13 +29,13 @@ internal class NCX
 	public string Lang { get; set; } = null!;
 }
 
-internal class NCXHead
+public class NCXHead
 {
 	[XmlElement("meta")]
 	public List<NCXMeta> Meta { get; set; } = null!;
 }
 
-internal class NCXMeta
+public class NCXMeta
 {
 	[XmlAttribute("name")]
 	public string Name { get; set; } = null!;
@@ -44,13 +44,13 @@ internal class NCXMeta
 	public string Content { get; set; } = null!;
 }
 
-internal class NCXText
+public class NCXText
 {
 	[XmlElement("text")]
 	public string Text { get; set; } = null!;
 }
 
-internal class NCXNavPoint
+public class NCXNavPoint
 {
 	[XmlElement("navLabel")]
 	public NCXText? NavLabel { get; set; }
@@ -67,7 +67,7 @@ internal class NCXNavPoint
 	public int PlayOrder { get; set; }
 }
 
-internal class NCXContent
+public class NCXContent
 {
 	[XmlAttribute("src")]
 	public string Src { get; set; } = null!;
