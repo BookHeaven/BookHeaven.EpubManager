@@ -5,7 +5,7 @@ namespace BookHeaven.EpubManager.Enums;
 public enum Format
 {
     [Description("EPUB")]
-    Epub = 0,
+    Epub = 1,
     [Description("PDF")]
-    Pdf = 1,
+    Pdf = 2,
 }
