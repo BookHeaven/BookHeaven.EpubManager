@@ -16,9 +16,10 @@ public class Ebook
     public decimal? SeriesIndex { get; set; }
     public string? Publisher { get; set; }
     public string? PublishDate { get; set; }
-    public List<Identifier> Identifiers { get; set; } = [];
+    public IReadOnlyList<Identifier> Identifiers { get; set; } = [];
     public byte[]? Cover { get; set; }
-    public Content Content { get; set; } = null!;
+    public Content Content { get; set; } = new();
+    public int Pages { get; set; }
 }
 
 public class Identifier
@@ -29,16 +30,16 @@ public class Identifier
 
 public class Content
 {
-    public List<TocEntry> TableOfContents { get; set; } = [];
-    public List<Chapter> Chapters { get; set; } = [];
-    public List<Stylesheet> Stylesheets { get; set; } = [];
+    public IReadOnlyList<TocEntry> TableOfContents { get; set; } = [];
+    public IReadOnlyList<Chapter> Chapters { get; set; } = [];
+    public IReadOnlyList<Stylesheet> Stylesheets { get; set; } = [];
     
     public TocEntry? GetChapterFromTableOfContents(string? itemId)
     {
         return itemId is null ? null : GetTitle(TableOfContents);
 
         // Search recursively for the title of the chapter with the specified item id
-        TocEntry? GetTitle(List<TocEntry> chapters)
+        TocEntry? GetTitle(IReadOnlyList<TocEntry> chapters)
         {
             foreach (var chapter in chapters)
             {
@@ -60,13 +61,13 @@ public class TocEntry
 {
     public string? Id { get; set; }
     public string? Title { get; set; }
-    public List<TocEntry> Entries { get; set; } = [];
+    public IReadOnlyList<TocEntry> Entries { get; set; } = [];
     
     public bool ContainsEntry(string? itemId)
     {
         return itemId is not null && Contains(Entries);
 
-        bool Contains(List<TocEntry> chapters)
+        bool Contains(IReadOnlyList<TocEntry> chapters)
         {
             return chapters.Any(chapter => chapter.Id == itemId || Contains(chapter.Entries));
         }
