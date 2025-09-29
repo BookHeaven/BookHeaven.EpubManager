@@ -71,14 +71,6 @@ public partial class EpubReader : IEbookReader
 		public CssEditMode Mode { get; init; }
 	}
 
-	public EpubReader()
-	{
-		_serializers[typeof(Package)] = new XmlSerializer(typeof(Package));
-		_serializers[typeof(Container)] = new XmlSerializer(typeof(Container));
-		_serializers[typeof(NCX)] = new XmlSerializer(typeof(NCX));
-		_serializers[typeof(Nav)] = new XmlSerializer(typeof(Nav));
-	}
-
 	public async Task<Ebook> ReadMetadataAsync(string path)
 	{
 		return await ReadAsync(path);
