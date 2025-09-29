@@ -5,19 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using BookHeaven.EpubManager.Abstractions;
 using BookHeaven.EpubManager.Entities;
 using BookHeaven.EpubManager.Epub.Constants;
 using BookHeaven.EpubManager.Extensions;
 
 namespace BookHeaven.EpubManager.Epub.Services;
 
-public interface IEpubWriter
-{
-	Task ReplaceMetadataAsync(string bookPath, Ebook ebook);
-	Task ReplaceCoverAsync(string bookPath, string newCoverPath);
-}
-
-public class EpubWriter : IEpubWriter
+public class EpubWriter : IEbookWriter
 {
 	private async Task<(string path, string xml)> LoadOpfAsync(string bookPath)
 	{
