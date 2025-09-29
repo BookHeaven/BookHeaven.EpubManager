@@ -1,6 +1,6 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using BookHeaven.EpubManager.Entities;
+using BookHeaven.EpubManager.Enums;
 using BookHeaven.EpubManager.Epub.Entities;
 using Content = BookHeaven.EpubManager.Entities.Content;
 
@@ -13,6 +13,7 @@ internal static class EpubBookToEbook
         var metadata = epubBook.Metadata;
         var ebook = new Ebook
         {
+            Format = Format.Epub,
             Title = metadata.Title,
             Author = metadata.Author,
             Language = metadata.Language,
