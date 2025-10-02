@@ -1,8 +1,7 @@
 using BookHeaven.EpubManager.Abstractions;
 using BookHeaven.EpubManager.Enums;
-using BookHeaven.EpubManager.Epub.Services;
-using BookHeaven.EpubManager.Pdf.Services;
 using BookHeaven.EpubManager.Formats.Epub.Services;
+using BookHeaven.EpubManager.Formats.Pdf.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BookHeaven.EpubManager;
@@ -13,8 +12,10 @@ public static class DependencyInjection
     /// Registers the EpubManager services
     /// </summary>
     /// <param name="services"></param>
-    public static IServiceCollection AddEbookManager(this IServiceCollection services)
+    /// <param name="cachePath"></param>
+    public static IServiceCollection AddEbookManager(this IServiceCollection services, string cachePath = "")
     {
+        Globals.CachePath = cachePath;
         services.AddReaders();
         services.AddWriters();
         services.AddTransient<EbookManagerProvider>();
