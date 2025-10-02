@@ -1,6 +1,8 @@
 # BookHeaven EbookManager
 BookHeaven EbookManager is a .NET library developed for the BookHeaven ecosystem, but it can be used independently in other projects.<br/>
-It exposes a set of Services to manipulate eBooks in a limited amount of formats.<br/>
+It exposes a set of Services to manipulate eBooks in a limited amount of formats.
+
+It has been designed to extract the contents in html format and provides quite a few css variables to alter the styling of the text.<br/>
 
 More detailed documentation will be added in the future.
 
@@ -9,6 +11,9 @@ More detailed documentation will be added in the future.
 ```csharp
 builder.Services.AddEbookManager();
 ```
+You can optionally pass in a folder path as a parameter to use as a cache for temporary files (like extracted images).<br/>
+If no folder is provided, the images will be loaded into base64 strings instead, which may consume a lot of memory.
+
 2. Inject the EbookManagerProvider service and use it to get the appropriate reader or writer for your desired format at runtime.
 ```csharp
 public class MyService(EbookManagerProvider ebookManagerProvider)
