@@ -40,8 +40,7 @@ internal static partial class PdfToHtmlConverter
             case 0: return string.Empty;
             case 1: return pages[0].Trim();
         }
-        
-        
+
         var sb = new StringBuilder();
         sb.AppendLine(pages[0].Trim());
 
@@ -53,27 +52,29 @@ internal static partial class PdfToHtmlConverter
             var sbStr = sb.ToString();
             var lastParaEnd = sbStr.LastIndexOf("</p>", StringComparison.OrdinalIgnoreCase);
             if (lastParaEnd == -1) { sb.AppendLine(page); continue; }
-
+            
             // Find the last opening <p ...> tag before </p>
             var lastParaStart = sbStr.LastIndexOf("<p", lastParaEnd, StringComparison.OrdinalIgnoreCase);
             if (lastParaStart == -1 || lastParaStart >= lastParaEnd) { sb.AppendLine(page); continue; }
             var lastPara = sbStr.Substring(lastParaStart, lastParaEnd + 4 - lastParaStart);
 
+            // Check if the last paragraph ends with a punctuation mark
             var lastCharIndex = lastPara.LastIndexOfAny(PunctuationMarks);
-            if (lastCharIndex != -1 && lastCharIndex >= lastPara.Length - 5) continue;
-            
-            // Find and remove the first <p ...> tag in the next page
-            var match = OpenParagraphTagRegex().Match(page);
-            var firstParaEnd = page.IndexOf("</p>", StringComparison.OrdinalIgnoreCase);
-            if (match.Success && firstParaEnd != -1 && match.Index < firstParaEnd)
+            if (lastCharIndex == -1 || lastCharIndex < lastPara.Length - 5)
             {
-                var firstParaContentStart = match.Index + match.Length;
-                var firstParaContentLength = firstParaEnd - firstParaContentStart;
-                var firstParaContent = page.Substring(firstParaContentStart, firstParaContentLength);
-                var mergedPara = string.Concat(lastPara.AsSpan(0, lastPara.Length - 4), " ", firstParaContent, "</p>");
-                sb.Remove(lastParaStart, lastPara.Length);
-                sb.AppendLine(mergedPara);
-                page = page[(firstParaEnd + 4)..].Trim();
+                // Try to merge with the first paragraph of the new page
+                var match = OpenParagraphTagRegex().Match(page);
+                var firstParaEnd = page.IndexOf("</p>", StringComparison.OrdinalIgnoreCase);
+                if (match.Success && firstParaEnd != -1 && match.Index < firstParaEnd)
+                {
+                    var firstParaContentStart = match.Index + match.Length;
+                    var firstParaContentLength = firstParaEnd - firstParaContentStart;
+                    var firstParaContent = page.Substring(firstParaContentStart, firstParaContentLength);
+                    var mergedPara = string.Concat(lastPara.AsSpan(0, lastPara.Length - 4), " ", firstParaContent, "</p>");
+                    sb.Remove(lastParaStart, lastPara.Length);
+                    sb.AppendLine(mergedPara);
+                    page = page[(firstParaEnd + 4)..].Trim();
+                }
             }
 
             sb.AppendLine(page);
@@ -81,6 +82,7 @@ internal static partial class PdfToHtmlConverter
 
         return sb.ToString().Trim();
     }
+
 
     [GeneratedRegex(@"<p\b[^>]*>", RegexOptions.IgnoreCase)]
     private static partial Regex OpenParagraphTagRegex();
