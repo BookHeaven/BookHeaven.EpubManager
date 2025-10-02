@@ -1,10 +1,11 @@
 ﻿using System.Linq;
-using BookHeaven.EpubManager.Entities;
-using BookHeaven.EpubManager.Enums;
-using BookHeaven.EpubManager.Formats.Epub.Entities;
-using Content = BookHeaven.EpubManager.Entities.Content;
+using BookHeaven.EbookManager.Entities;
+using BookHeaven.EbookManager.Enums;
+using BookHeaven.EbookManager.Formats.Epub.Entities;
+using Content = BookHeaven.EbookManager.Entities.Content;
+using Entities_Content = BookHeaven.EbookManager.Entities.Content;
 
-namespace BookHeaven.EpubManager.Extensions.Mapping;
+namespace BookHeaven.EbookManager.Extensions.Mapping;
 
 internal static class EpubBookToEbook
 {
@@ -24,7 +25,7 @@ internal static class EpubBookToEbook
             PublishDate = metadata.PublishDate,
             Identifiers = metadata.Identifiers.Select(i => i.ToIdentifier()).ToList(),
             Cover = epubBook.Cover,
-            Content = new Content
+            Content = new Entities_Content
             {
                 Stylesheets = epubBook.Content.Styles.Select(s => s.ToStylesheet()).ToList(),
                 Chapters = epubBook.Content.Spine.Select(c => c.ToChapter()).ToList(),

@@ -3,17 +3,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using BookHeaven.EpubManager.Abstractions;
-using BookHeaven.EpubManager.Entities;
-using BookHeaven.EpubManager.Enums;
-using BookHeaven.EpubManager.Formats.Pdf.Converters;
-using BookHeaven.EpubManager.Formats.Pdf.Entities;
+using BookHeaven.EbookManager.Abstractions;
+using BookHeaven.EbookManager.Entities;
+using BookHeaven.EbookManager.Enums;
+using BookHeaven.EbookManager.Formats.Pdf.Entities;
+using BookHeaven.EbookManager.Formats.Pdf.Converters;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas.Parser;
 using iText.Kernel.Pdf.Canvas.Parser.Data;
 using iText.Kernel.Pdf.Canvas.Parser.Listener;
 
-namespace BookHeaven.EpubManager.Formats.Pdf.Services;
+namespace BookHeaven.EbookManager.Formats.Pdf.Services;
 
 public class PdfReader : IEbookReader
 {

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Xml.Serialization;
-using BookHeaven.EpubManager.Formats.Epub.Constants;
+using BookHeaven.EbookManager.Formats.Epub.Constants;
 
-namespace BookHeaven.EpubManager.Formats.Epub.XML;
+namespace BookHeaven.EbookManager.Formats.Epub.XML;
 
 [XmlRoot("nav", Namespace = Namespaces.Xhtml)]
 public class Nav

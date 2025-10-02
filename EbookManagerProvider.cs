@@ -1,9 +1,9 @@
 ﻿using System;
-using BookHeaven.EpubManager.Abstractions;
-using BookHeaven.EpubManager.Enums;
+using BookHeaven.EbookManager.Abstractions;
+using BookHeaven.EbookManager.Enums;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BookHeaven.EpubManager;
+namespace BookHeaven.EbookManager;
 
 public class EbookManagerProvider(IServiceProvider serviceProvider)
 {

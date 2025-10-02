@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
-using BookHeaven.EpubManager.Entities;
+using BookHeaven.EbookManager.Entities;
 
-namespace BookHeaven.EpubManager.Abstractions;
+namespace BookHeaven.EbookManager.Abstractions;
 
 public interface IEbookWriter
 {

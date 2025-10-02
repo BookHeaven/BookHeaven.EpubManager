@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using BookHeaven.EpubManager.Formats.Pdf.Entities;
-using BookHeaven.EpubManager.Formats.Pdf.EventListeners;
+using BookHeaven.EbookManager.Formats.Pdf.Entities;
+using BookHeaven.EbookManager.Formats.Pdf.EventListeners;
 using iText.Kernel.Pdf.Canvas.Parser;
 
-namespace BookHeaven.EpubManager.Formats.Pdf.Converters;
+namespace BookHeaven.EbookManager.Formats.Pdf.Converters;
 
 internal static partial class PdfToHtmlConverter
 {

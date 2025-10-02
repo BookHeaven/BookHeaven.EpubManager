@@ -1,7 +1,7 @@
 ﻿using System.Linq;
-using BookHeaven.EpubManager.Formats.Epub.XML;
+using BookHeaven.EbookManager.Formats.Epub.XML;
 
-namespace BookHeaven.EpubManager.Extensions;
+namespace BookHeaven.EbookManager.Extensions;
 
 internal static class XmlExtensions
 {

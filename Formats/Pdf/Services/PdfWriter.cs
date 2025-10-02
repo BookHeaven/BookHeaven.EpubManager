@@ -1,12 +1,12 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
-using BookHeaven.EpubManager.Abstractions;
-using BookHeaven.EpubManager.Entities;
+using BookHeaven.EbookManager.Abstractions;
+using BookHeaven.EbookManager.Entities;
 using iText.IO.Image;
 using iText.Kernel.Pdf;
 
-namespace BookHeaven.EpubManager.Formats.Pdf.Services;
+namespace BookHeaven.EbookManager.Formats.Pdf.Services;
 
 public class PdfWriter : IEbookWriter
 {

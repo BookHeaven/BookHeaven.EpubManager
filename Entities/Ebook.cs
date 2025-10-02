@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using BookHeaven.EpubManager.Enums;
+using BookHeaven.EbookManager.Enums;
 
-namespace BookHeaven.EpubManager.Entities;
+namespace BookHeaven.EbookManager.Entities;
 
 public class Ebook
 {

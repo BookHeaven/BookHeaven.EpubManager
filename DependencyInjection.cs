@@ -1,10 +1,10 @@
-using BookHeaven.EpubManager.Abstractions;
-using BookHeaven.EpubManager.Enums;
-using BookHeaven.EpubManager.Formats.Epub.Services;
-using BookHeaven.EpubManager.Formats.Pdf.Services;
+using BookHeaven.EbookManager.Abstractions;
+using BookHeaven.EbookManager.Enums;
+using BookHeaven.EbookManager.Formats.Epub.Services;
+using BookHeaven.EbookManager.Formats.Pdf.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BookHeaven.EpubManager;
+namespace BookHeaven.EbookManager;
 
 public static class DependencyInjection
 {

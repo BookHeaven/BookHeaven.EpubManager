@@ -4,15 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using BookHeaven.EpubManager.Formats.Pdf.Entities;
-using BookHeaven.EpubManager.Formats.Pdf.Parsers;
+using BookHeaven.EbookManager.Formats.Pdf.Entities;
+using BookHeaven.EbookManager.Formats.Pdf.Parsers;
 using iText.Kernel.Geom;
 using iText.Kernel.Pdf.Canvas.Parser;
 using iText.Kernel.Pdf.Canvas.Parser.Data;
 using iText.Kernel.Pdf.Canvas.Parser.Listener;
 using Path = System.IO.Path;
 
-namespace BookHeaven.EpubManager.Formats.Pdf.EventListeners;
+namespace BookHeaven.EbookManager.Formats.Pdf.EventListeners;
 
 internal class HtmlExtractionStrategy(PdfDocumentContext context, Rectangle pageSize) : IEventListener
 {

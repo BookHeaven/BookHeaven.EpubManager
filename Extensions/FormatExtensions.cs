@@ -1,7 +1,7 @@
 ﻿using System;
-using BookHeaven.EpubManager.Enums;
+using BookHeaven.EbookManager.Enums;
 
-namespace BookHeaven.EpubManager.Extensions;
+namespace BookHeaven.EbookManager.Extensions;
 
 public static class FormatExtensions
 {

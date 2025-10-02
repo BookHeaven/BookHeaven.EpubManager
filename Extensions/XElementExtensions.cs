@@ -1,8 +1,8 @@
 using System.Linq;
 using System.Xml.Linq;
-using BookHeaven.EpubManager.Formats.Epub.Constants;
+using BookHeaven.EbookManager.Formats.Epub.Constants;
 
-namespace BookHeaven.EpubManager.Extensions;
+namespace BookHeaven.EbookManager.Extensions;
 
 public static class XElementExtensions
 {

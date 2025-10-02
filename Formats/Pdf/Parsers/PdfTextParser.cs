@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using BookHeaven.EpubManager.Formats.Pdf.Entities;
+using BookHeaven.EbookManager.Formats.Pdf.Entities;
 
-namespace BookHeaven.EpubManager.Formats.Pdf.Parsers;
+namespace BookHeaven.EbookManager.Formats.Pdf.Parsers;
 
 internal static class PdfTextParser
 {

@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using iText.Kernel.Pdf;
 
-namespace BookHeaven.EpubManager.Formats.Pdf.Entities;
+namespace BookHeaven.EbookManager.Formats.Pdf.Entities;
 
 public class PdfDocumentContext
 {

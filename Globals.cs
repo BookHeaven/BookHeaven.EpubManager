@@ -1,4 +1,4 @@
-﻿namespace BookHeaven.EpubManager;
+﻿namespace BookHeaven.EbookManager;
 
 internal static class Globals
 {

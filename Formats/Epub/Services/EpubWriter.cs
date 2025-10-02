@@ -5,12 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using BookHeaven.EpubManager.Abstractions;
-using BookHeaven.EpubManager.Entities;
-using BookHeaven.EpubManager.Extensions;
-using BookHeaven.EpubManager.Formats.Epub.Constants;
+using BookHeaven.EbookManager.Abstractions;
+using BookHeaven.EbookManager.Entities;
+using BookHeaven.EbookManager.Formats.Epub.Constants;
+using BookHeaven.EbookManager.Extensions;
 
-namespace BookHeaven.EpubManager.Formats.Epub.Services;
+namespace BookHeaven.EbookManager.Formats.Epub.Services;
 
 public class EpubWriter : IEbookWriter
 {

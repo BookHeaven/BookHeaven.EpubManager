@@ -1,7 +1,7 @@
 ﻿using System;
-using BookHeaven.EpubManager.Formats.Pdf.Enums;
+using BookHeaven.EbookManager.Formats.Pdf.Enums;
 
-namespace BookHeaven.EpubManager.Formats.Pdf;
+namespace BookHeaven.EbookManager.Formats.Pdf;
 
 internal static class Utilities
 {

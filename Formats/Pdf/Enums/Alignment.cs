@@ -1,4 +1,4 @@
-﻿namespace BookHeaven.EpubManager.Formats.Pdf.Enums;
+﻿namespace BookHeaven.EbookManager.Formats.Pdf.Enums;
 
 internal enum Alignment
 {

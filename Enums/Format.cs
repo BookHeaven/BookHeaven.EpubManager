@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace BookHeaven.EpubManager.Enums;
+namespace BookHeaven.EbookManager.Enums;
 
 public enum Format
 {

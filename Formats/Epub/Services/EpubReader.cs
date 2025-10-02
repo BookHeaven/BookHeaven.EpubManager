@@ -12,17 +12,18 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Serialization;
-using BookHeaven.EpubManager.Abstractions;
-using BookHeaven.EpubManager.Entities;
-using BookHeaven.EpubManager.Extensions;
-using BookHeaven.EpubManager.Extensions.Mapping;
-using BookHeaven.EpubManager.Formats.Epub.Entities;
-using BookHeaven.EpubManager.Formats.Epub.XML;
+using BookHeaven.EbookManager.Abstractions;
+using BookHeaven.EbookManager.Entities;
+using BookHeaven.EbookManager.Formats.Epub.Entities;
+using BookHeaven.EbookManager.Formats.Epub.XML;
+using BookHeaven.EbookManager.Extensions;
+using BookHeaven.EbookManager.Extensions.Mapping;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
-using Content = BookHeaven.EpubManager.Formats.Epub.Entities.Content;
+using Content = BookHeaven.EbookManager.Formats.Epub.Entities.Content;
+using Entities_Content = BookHeaven.EbookManager.Formats.Epub.Entities.Content;
 
-namespace BookHeaven.EpubManager.Formats.Epub.Services;
+namespace BookHeaven.EbookManager.Formats.Epub.Services;
 public partial class EpubReader : IEbookReader
 {
 	private ZipArchive? _zipArchive;
@@ -250,9 +251,9 @@ public partial class EpubReader : IEbookReader
 	/// Loads the content of the epub, which includes both the Spine (index) and the chapters
 	/// </summary>
 	/// <returns></returns>
-	private async Task<Content> LoadContent()
+	private async Task<Entities_Content> LoadContent()
 	{
-		var content = new Content();
+		var content = new Entities_Content();
 			
 		var cssFiles = _package!.Manifest.Items.Where(x => x.MediaType.Equals("text/css")).ToList();
 		var cssTasks = cssFiles.Select(async item =>

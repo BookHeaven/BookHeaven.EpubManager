@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace BookHeaven.EpubManager;
+namespace BookHeaven.EbookManager;
 
 public static partial class HtmlManager
 {

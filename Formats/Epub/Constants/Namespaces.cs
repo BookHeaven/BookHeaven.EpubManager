@@ -1,4 +1,4 @@
-﻿namespace BookHeaven.EpubManager.Formats.Epub.Constants;
+﻿namespace BookHeaven.EbookManager.Formats.Epub.Constants;
 
 internal static class Namespaces
 {
