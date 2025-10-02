@@ -1,20 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using BookHeaven.EpubManager.Abstractions;
 using BookHeaven.EpubManager.Entities;
 using BookHeaven.EpubManager.Enums;
+using BookHeaven.EpubManager.Formats.Pdf.Converters;
+using BookHeaven.EpubManager.Formats.Pdf.Entities;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas.Parser;
 using iText.Kernel.Pdf.Canvas.Parser.Data;
 using iText.Kernel.Pdf.Canvas.Parser.Listener;
-using iText.Layout.Element;
 
-namespace BookHeaven.EpubManager.Pdf.Services;
+namespace BookHeaven.EpubManager.Formats.Pdf.Services;
 
 public class PdfReader : IEbookReader
 {
+    
     public Task<Ebook> ReadMetadataAsync(string path)
     {
         var ebook = new Ebook
@@ -44,14 +47,13 @@ public class PdfReader : IEbookReader
         public byte[]? FirstImageBytes { get; private set; }
         public void EventOccurred(IEventData data, EventType type)
         {
-            if (type == EventType.RENDER_IMAGE && FirstImageBytes == null)
+            if (type != EventType.RENDER_IMAGE || FirstImageBytes != null) return;
+            
+            var renderInfo = (ImageRenderInfo)data;
+            var imageObject = renderInfo.GetImage();
+            if (imageObject != null)
             {
-                var renderInfo = (ImageRenderInfo)data;
-                var imageObject = renderInfo.GetImage();
-                if (imageObject != null)
-                {
-                    FirstImageBytes = imageObject.GetImageBytes(true);
-                }
+                FirstImageBytes = imageObject.GetImageBytes(true);
             }
         }
         public ICollection<EventType>? GetSupportedEvents() => null;
@@ -60,18 +62,24 @@ public class PdfReader : IEbookReader
     public async Task<Ebook> ReadAllAsync(string path)
     {
         var ebook = await ReadMetadataAsync(path);
-
+        
         using var pdfDocument = new PdfDocument(new iText.Kernel.Pdf.PdfReader(path));
+        
+        var documentContext = new PdfDocumentContext
+        {
+            Document = pdfDocument,
+            Identifier = Path.GetFileNameWithoutExtension(path)
+        };
         // Get outlines (table of contents)
         var outlines = pdfDocument.GetOutlines(false);
         var tree = pdfDocument.GetCatalog().GetNameTree(PdfName.Dests);
         var toc = await MapOutlinesToTableOfContents(pdfDocument, tree, outlines?.GetAllChildren() ?? []);
-        if (toc.All(e => e.Id != "1"))
+        if (toc.Count > 0 && toc.All(e => e.Id != "1"))
         {
             toc.Insert(0, new TocEntry { Id = "1", Title = "Cover" });
         }
         ebook.Content.TableOfContents = toc;
-        ebook.Content.Chapters = MapPagesToChapters(pdfDocument, GetFlattenedToc(ebook.Content.TableOfContents));
+        ebook.Content.Chapters = await MapPagesToChapters(documentContext, toc);
 
         return ebook;
     }
@@ -107,36 +115,37 @@ public class PdfReader : IEbookReader
         return (await Task.WhenAll(tasks)).ToList();
     }
 
-    private IReadOnlyList<Chapter> MapPagesToChapters(PdfDocument pdfDocument, IReadOnlyList<TocEntry> flattenedToc)
+    private static async Task<List<Chapter>> MapPagesToChapters(PdfDocumentContext context, IReadOnlyList<TocEntry> toc)
     {
+        var flattenedToc = GetFlattenedToc(toc);
         var chapters = new List<Chapter>();
-        var coverChapter = new Chapter
-        {
-            Identifier = "1",
-            WordCount = 1,
-            Content = ConvertPdfPageToHtml(pdfDocument.GetPage(1)),
-            IsContentProcessed = true
-        };
-        chapters.Add(coverChapter);
 
-        if (flattenedToc.Count > 2)
+        if (flattenedToc.Count > 0)
         {
+            var coverChapter = new Chapter
+            {
+                Identifier = "1",
+                Weight = 1,
+                IsContentProcessed = true,
+                Content = await context.ConvertToHtml(1, 1)
+            };
+            chapters.Add(coverChapter);
+            
             // Group pages into chapters based on table of contents, starting from page 2
             for (var i = 1; i < flattenedToc.Count; i++)
             {
-                var startPage = int.Parse(flattenedToc[i - 1].Id ?? "1");
-                var endPage = int.Parse(flattenedToc[i].Id ?? pdfDocument.GetNumberOfPages().ToString());
+                var startPage = int.Parse(flattenedToc[i].Id!);
+                var endPage = int.Parse(flattenedToc.Count > i + 1 ? flattenedToc[i + 1].Id! : (context.Document.GetNumberOfPages() + 1).ToString());
+                var weight = endPage - startPage - 1;
+                if (weight <= 0) weight = 1;
                 var chapter = new Chapter
                 {
-                    Identifier = flattenedToc[i].Id ?? (i + 1).ToString(),
+                    Identifier = flattenedToc[i].Id!,
                     Title = flattenedToc[i].Title,
-                    WordCount = endPage - startPage,
-                    IsContentProcessed = true
+                    IsContentProcessed = true,
+                    Weight = weight,
+                    Content = await context.ConvertToHtml(startPage, endPage - 1)
                 };
-                for (var j = startPage; j < endPage; j++)
-                {
-                    chapter.Content += ConvertPdfPageToHtml(pdfDocument.GetPage(j));
-                }
 
                 chapters.Add(chapter);
             }
@@ -146,15 +155,11 @@ public class PdfReader : IEbookReader
         {
             var chapter = new Chapter
             {
-                Identifier = "2",
-                WordCount = pdfDocument.GetNumberOfPages() - 1,
-                IsContentProcessed = true
+                Identifier = "1",
+                IsContentProcessed = true,
+                Content = await context.ConvertToHtml(1, context.Document.GetNumberOfPages()),
+                Weight = context.Document.GetNumberOfPages() - 1
             };
-
-            for (var i = 2; i < pdfDocument.GetNumberOfPages() + 1; i++)
-            {
-                chapter.Content += ConvertPdfPageToHtml(pdfDocument.GetPage(i));
-            }
             chapters.Add(chapter);
         }
         
@@ -162,23 +167,7 @@ public class PdfReader : IEbookReader
         return chapters;
     }
     
-    private static string ConvertPdfPageToHtml(PdfPage page)
-    {
-        using var tempDoc = new PdfDocument(new iText.Kernel.Pdf.PdfWriter(new System.IO.MemoryStream()));
-        var xObject = page.CopyAsFormXObject(tempDoc);
-        var image = new Image(xObject);
-        using var ms = new System.IO.MemoryStream();
-        var pdfImage = image.GetXObject().GetPdfObject();
-        if (pdfImage != null)
-        {
-            var bytes = pdfImage.GetBytes();
-            ms.Write(bytes, 0, bytes.Length);
-        }
-        var base64Image = Convert.ToBase64String(ms.ToArray());
-        return $"<div><img src=\"data:image/png;base64,{base64Image}\" alt=\"\" /></div>";
-    }
-    
-    private static IReadOnlyList<TocEntry> GetFlattenedToc(IReadOnlyList<TocEntry> tableOfContents)
+    private static List<TocEntry> GetFlattenedToc(IReadOnlyList<TocEntry> tableOfContents)
     {
         var result = new List<TocEntry>();
         Flatten(tableOfContents);

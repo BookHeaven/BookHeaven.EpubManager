@@ -6,7 +6,7 @@ using BookHeaven.EpubManager.Entities;
 using iText.IO.Image;
 using iText.Kernel.Pdf;
 
-namespace BookHeaven.EpubManager.Pdf.Services;
+namespace BookHeaven.EpubManager.Formats.Pdf.Services;
 
 public class PdfWriter : IEbookWriter
 {

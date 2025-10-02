@@ -1,0 +1,13 @@
+﻿using BookHeaven.EpubManager.Formats.Pdf.Enums;
+
+namespace BookHeaven.EpubManager.Formats.Pdf.Entities;
+
+internal class PdfText : PdfBaseElement
+{
+    public string Text { get; set; } = string.Empty;
+    public bool IsBold { get; set; }
+    public bool IsItalic { get; set; }
+    public float FontSize { get; set; }
+
+    public PdfText() => Type = ElementType.Text;
+}
