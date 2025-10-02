@@ -49,19 +49,20 @@ public class MyService(EbookManagerProvider ebookManagerProvider)
             <td>✔️</td>
         </tr>
         <tr>
-            <td>Pdf</td>
+            <td>Pdf (check notes below)</td>
             <td>✔️</td>
-            <td>✔️[^1]</td>
-            <td>✔️[^2]</td>
             <td>✔️</td>
-            <td>✔️[^3]</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✔️</td>
         </tr>
     </tbody>
 </table>
 
-[^1]: Metadata in PDF files is limited to title and author, and most of the time they are empty.
-[^2]: The cover is extracted from the first image of the first page of the PDF, so it will fail if there isn't any images there.
-[^3]: Text extraction is very basic and may not work properly with complex layouts. It works best with image based PDFs like comics and mangas.
+### PDF notes
+* Metadata in PDF files is limited to title and author, and most of the time they are empty.
+* The cover is extracted from the first image of the first page of the PDF, so it will fail if there isn't any images there.
+* Text extraction is very basic and may not work properly with complex layouts. It works best with image based PDFs like comics and mangas.
 
 ## :package: Credits
 - HtmlAgilityPack (https://html-agility-pack.net/)
