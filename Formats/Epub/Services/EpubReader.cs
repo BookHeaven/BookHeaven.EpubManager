@@ -14,15 +14,15 @@ using System.Xml.Linq;
 using System.Xml.Serialization;
 using BookHeaven.EpubManager.Abstractions;
 using BookHeaven.EpubManager.Entities;
-using BookHeaven.EpubManager.Epub.Entities;
-using BookHeaven.EpubManager.Epub.XML;
 using BookHeaven.EpubManager.Extensions;
 using BookHeaven.EpubManager.Extensions.Mapping;
+using BookHeaven.EpubManager.Formats.Epub.Entities;
+using BookHeaven.EpubManager.Formats.Epub.XML;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
-using Content = BookHeaven.EpubManager.Epub.Entities.Content;
+using Content = BookHeaven.EpubManager.Formats.Epub.Entities.Content;
 
-namespace BookHeaven.EpubManager.Epub.Services;
+namespace BookHeaven.EpubManager.Formats.Epub.Services;
 public partial class EpubReader : IEbookReader
 {
 	private ZipArchive? _zipArchive;
@@ -37,39 +37,6 @@ public partial class EpubReader : IEbookReader
 	private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
 
 	private readonly Dictionary<Type, XmlSerializer> _serializers = [];
-	
-	private enum CssEditMode
-	{
-		Replace,
-		Add,
-		Max,
-		Remove,
-		ReplaceProperty
-	}
-
-	private readonly List<CssProperty> _customStyles =
-	[
-		new() { Property = "line-height", CssVariable= "var(--line-height)", CssUnit = "em", Mode = CssEditMode.Add },
-		new() { Property = "text-indent", CssVariable= "var(--text-indent)", CssUnit = "em", Mode = CssEditMode.Replace },
-		new() { Property = "margin-top", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = CssEditMode.Max },
-		new() { Property = "margin-bottom", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = CssEditMode.Max },
-		new() { Property = "margin", CssVariable= "var(--paragraph-spacing)", CssUnit = "pt", Mode = CssEditMode.Max },
-		new() { Property = "font-size", CssVariable= "1", CssUnit = "em", Mode = CssEditMode.Max },
-		new() { Property = "font-family", Mode = CssEditMode.Remove },
-		new() { Property = "widows", Mode = CssEditMode.Remove },
-		new() { Property = "orphans", Mode = CssEditMode.Remove },
-		new() { Property = "padding-top", NewProperty = "margin-top",Mode = CssEditMode.ReplaceProperty},
-		new() { Property = "padding-bottom", NewProperty = "margin-bottom",Mode = CssEditMode.ReplaceProperty}
-	];
-	
-	private class CssProperty
-	{
-		public string Property { get; init; } = null!;
-		public string NewProperty { get; init; } = null!;
-		public string? CssVariable { get; init; }
-		public string? CssUnit { get; init; }
-		public CssEditMode Mode { get; init; }
-	}
 
 	public async Task<Ebook> ReadMetadataAsync(string path)
 	{
@@ -303,7 +270,7 @@ public partial class EpubReader : IEbookReader
 			{
 				cssContent.Replace(fontFace.Value, null);
 			}
-			await ReplaceCssProperties(cssContent);
+			await HtmlManager.ReplaceCssProperties(cssContent);
 			return new Style { Name= item.Href, Content = cssContent.ToString()};
 		});
 
@@ -612,93 +579,9 @@ public partial class EpubReader : IEbookReader
 
 		StringBuilder result = new(doc.DocumentNode.OuterHtml);
 
-		await ReplaceCssProperties(result);
+		await HtmlManager.ReplaceCssProperties(result);
 		return result.ToString();
 
-	}
-
-	/// <summary>
-	/// Replaces css properties with custom values
-	/// </summary>
-	/// <param name="content">Html</param>
-	private async Task ReplaceCssProperties(StringBuilder content)
-	{
-		var contentString = content.ToString();
-		var tasks = _customStyles.SelectMany(cSsProperty =>
-		{
-			Regex regex = new(@$"{cSsProperty.Property}:\s*([^;}}]+?)(;|}})");
-			if (!regex.IsMatch(contentString))
-			{
-				return [Task.FromResult((original: (string?)null, replacement: (string?)null))];
-			}
-
-			var matches = regex.Matches(contentString);
-			return matches.DistinctBy(m => m.Value).Select(async match =>
-			{
-				return await Task.Run(() =>
-				{
-					switch (cSsProperty.Mode)
-					{
-						case CssEditMode.Remove:
-							return ((string?)match.Value.Trim(), "");
-						case CssEditMode.ReplaceProperty:
-							return ((string?)match.Value.Trim(), (string?)match.Value.Replace(cSsProperty.Property, cSsProperty.NewProperty).Trim());
-					}
-					
-					var delimiter = match.Groups[2].Value;
-
-					var values = match.Groups[1].Value.Split(' ').Select(v => v.Trim()).ToList();
-					var processedValues = values.Select(value =>
-					{
-						if (!IsAboveZero(value))
-						{
-							return value;
-						}
-						
-						return cSsProperty.Mode switch
-						{
-							CssEditMode.Replace => $"calc({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit})",
-							CssEditMode.Add => $"calc({EnsureUnit(value, cSsProperty.CssUnit!)} + ({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit}))",
-							CssEditMode.Max => $"max({value}, calc({cSsProperty.CssVariable} * 1{cSsProperty.CssUnit}))",
-							_ => value
-						};
-					});
-
-					var replacement = $"{cSsProperty.Property}: {string.Join(" ", processedValues)}{delimiter}";
-
-					return ((string?)match.Value.Trim(), (string?)replacement.Trim());
-				});
-
-			});
-		});
-
-		var results = await Task.WhenAll(tasks);
-		results = results.Where(x => x is { Item1: not null, Item2: not null }).Distinct().ToArray();
-		foreach (var (original, replacement) in results)
-		{
-			if (original != null && replacement != null)
-			{
-				content.Replace(original, replacement);
-			}
-		}
-	}
-
-	private bool IsAboveZero(string cssValue)
-	{
-		var numberMatch = NumberRegex().Match(cssValue);
-		if (numberMatch.Success)
-		{
-			return double.Parse(numberMatch.Value) > 0;
-		}
-		return false;
-	}
-
-	private string EnsureUnit(string value, string unit)
-	{
-		if (Regex.IsMatch(value, @"[a-zA-Z%]+$"))
-			return value;
-		
-		return value + unit;
 	}
 
 	/// <summary>
@@ -756,8 +639,6 @@ public partial class EpubReader : IEbookReader
 	private static partial Regex CssImportRegex();
 	[GeneratedRegex(@"@font-face\s*{[^}]+}")]
 	private static partial Regex FontFaceRegex();
-	[GeneratedRegex(@"\d+\.?\d*")]
-	private static partial Regex NumberRegex();
 	[GeneratedRegex("<.*?>")]
 	private static partial Regex HtmlRegex();
 
@@ -768,7 +649,6 @@ public partial class EpubReader : IEbookReader
 	    _coverPath = null;
 	    _contentCache.Clear();
 	    _imageCache.Clear();
-	    _customStyles.Clear();
 	    _zipArchive?.Dispose();
 	    _zipLock?.Dispose();
 	    GC.SuppressFinalize(this);

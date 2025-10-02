@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Xml.Linq;
-using BookHeaven.EpubManager.Epub.Constants;
+using BookHeaven.EpubManager.Formats.Epub.Constants;
 
 namespace BookHeaven.EpubManager.Extensions;
 

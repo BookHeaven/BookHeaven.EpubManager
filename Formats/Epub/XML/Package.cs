@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Xml.Serialization;
-using BookHeaven.EpubManager.Epub.Constants;
+using BookHeaven.EpubManager.Formats.Epub.Constants;
 
-namespace BookHeaven.EpubManager.Epub.XML;
+namespace BookHeaven.EpubManager.Formats.Epub.XML;
 
 [XmlRoot("package", Namespace = Namespaces.Opf, IsNullable = false)]
 public class Package

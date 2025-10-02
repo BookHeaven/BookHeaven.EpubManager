@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using BookHeaven.EpubManager.Epub.XML;
+using BookHeaven.EpubManager.Formats.Epub.XML;
 
 namespace BookHeaven.EpubManager.Extensions;
 

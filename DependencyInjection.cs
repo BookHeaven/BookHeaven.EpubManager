@@ -2,6 +2,7 @@ using BookHeaven.EpubManager.Abstractions;
 using BookHeaven.EpubManager.Enums;
 using BookHeaven.EpubManager.Epub.Services;
 using BookHeaven.EpubManager.Pdf.Services;
+using BookHeaven.EpubManager.Formats.Epub.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BookHeaven.EpubManager;

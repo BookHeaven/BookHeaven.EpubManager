@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using BookHeaven.EpubManager.Abstractions;
 using BookHeaven.EpubManager.Entities;
-using BookHeaven.EpubManager.Epub.Constants;
 using BookHeaven.EpubManager.Extensions;
+using BookHeaven.EpubManager.Formats.Epub.Constants;
 
-namespace BookHeaven.EpubManager.Epub.Services;
+namespace BookHeaven.EpubManager.Formats.Epub.Services;
 
 public class EpubWriter : IEbookWriter
 {
