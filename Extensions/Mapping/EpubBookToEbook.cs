@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using BookHeaven.EpubManager.Entities;
 using BookHeaven.EpubManager.Enums;
-using BookHeaven.EpubManager.Epub.Entities;
+using BookHeaven.EpubManager.Formats.Epub.Entities;
 using Content = BookHeaven.EpubManager.Entities.Content;
 
 namespace BookHeaven.EpubManager.Extensions.Mapping;
@@ -60,7 +60,7 @@ internal static class EpubBookToEbook
             Title = chapter.Title,
             Content = chapter.TextContent,
             Identifier = chapter.Id,
-            WordCount = chapter.WordCount,
+            Weight = chapter.WordCount,
             Stylesheets = chapter.Styles,
             ParagraphClassName = chapter.ParagraphClassName
         };

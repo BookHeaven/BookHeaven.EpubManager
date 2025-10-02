@@ -52,7 +52,7 @@ public class Content
         }
     }
     
-    public int GetWordCount(int? untilChapterIndex = null) => Chapters.Take((untilChapterIndex ?? Chapters.Count)).Sum(c => c.WordCount);
+    public int GetTotalWeight(int? untilChapterIndex = null) => Chapters.Take(untilChapterIndex ?? Chapters.Count).Sum(c => c.Weight);
     
 }
 
@@ -78,12 +78,12 @@ public class Chapter
     public string Identifier { get; set; } = null!;
     public string? Title { get; set; }
     public string Content { get; set; } = string.Empty;
-    public int WordCount { get; set; }
+    public int Weight { get; set; }
     public List<string> Stylesheets { get; set; } = [];
     public string? ParagraphClassName { get; set; }
     public bool IsContentProcessed { get; set; } = false;
     
-    public int WordsPerPage(int pages) => WordCount / (pages == 0 ? 1 : pages);
+    public int WeightPerPage(int pages) => Weight / (pages == 0 ? 1 : pages);
 }
 
 public class Stylesheet
