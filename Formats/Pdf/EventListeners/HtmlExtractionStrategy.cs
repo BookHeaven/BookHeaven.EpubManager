@@ -66,11 +66,17 @@ internal class HtmlExtractionStrategy(PdfDocumentContext context, Rectangle page
                 {
                     var hash = Convert.ToHexStringLower(SHA256.HashData(imgBytes));
                     filename = Path.Combine(context.CachePath, $"{hash}.png");
-                    if (!File.Exists(filename))
+                    try
                     {
-                        Directory.CreateDirectory(context.CachePath);
-                        using var fs = new FileStream(filename, FileMode.Create);
-                        fs.Write(imgBytes, 0, imgBytes.Length);
+                        if (!File.Exists(filename))
+                        {
+                            Directory.CreateDirectory(context.CachePath);
+                            File.WriteAllBytes(filename, imgBytes);
+                        }
+                    }
+                    catch
+                    {
+                        filename = null;
                     }
                 }
                 
@@ -81,7 +87,7 @@ internal class HtmlExtractionStrategy(PdfDocumentContext context, Rectangle page
                     X = x,
                     Height = height,
                     Width = width,
-                    Data = string.IsNullOrWhiteSpace(Globals.CachePath) ? imgBytes : null,
+                    Data = string.IsNullOrWhiteSpace(filename) ? imgBytes : null,
                     Src = filename,
                 });
                 break;
