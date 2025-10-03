@@ -6,6 +6,7 @@ namespace BookHeaven.EbookManager.Entities;
 
 public class Ebook
 {
+    public string FilePath { get; set; } = null!;
     public Format Format { get; set; }
     public string Title { get; set; } = null!;
     public string? Synopsis { get; set; }

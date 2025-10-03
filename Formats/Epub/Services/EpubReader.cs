@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -14,14 +13,10 @@ using System.Xml.Linq;
 using System.Xml.Serialization;
 using BookHeaven.EbookManager.Abstractions;
 using BookHeaven.EbookManager.Entities;
-using BookHeaven.EbookManager.Formats.Epub.Entities;
 using BookHeaven.EbookManager.Formats.Epub.XML;
 using BookHeaven.EbookManager.Extensions;
-using BookHeaven.EbookManager.Extensions.Mapping;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
-using Content = BookHeaven.EbookManager.Formats.Epub.Entities.Content;
-using Entities_Content = BookHeaven.EbookManager.Formats.Epub.Entities.Content;
 
 namespace BookHeaven.EbookManager.Formats.Epub.Services;
 public partial class EpubReader : IEbookReader
@@ -58,7 +53,7 @@ public partial class EpubReader : IEbookReader
 	/// <returns></returns>
 	private async Task<Ebook> ReadAsync(string path, bool metadataOnly = true)
 	{
-		var epubBook = new EpubBook
+		var ebook = new Ebook
 		{
 			FilePath = path
 		};
@@ -70,13 +65,13 @@ public partial class EpubReader : IEbookReader
 			_rootFolder = Path.GetDirectoryName(packagePath)!;
 			_package = await ReadEntryAsync<Package>(packagePath);
 
-			epubBook.Cover = await LoadCoverImageAsBytesAsync();
-			epubBook.Metadata = MapMetadata(_package.Metadata);
+			ebook.Cover = await LoadCoverImageAsBytesAsync();
+			ebook.GetMetadataFromEpub(_package.Metadata);
 
 			if (!metadataOnly)
 			{
 				// Load content (spine and chapters)
-				epubBook.Content = await LoadContent();
+				ebook.Content = await LoadContent();
 			}
 		}
 		catch (Exception e)
@@ -88,7 +83,7 @@ public partial class EpubReader : IEbookReader
 			if(metadataOnly) Dispose();
 		}
 			
-		return epubBook.ToEbook();
+		return ebook;
 	}
 
 	/// <summary>
@@ -225,35 +220,12 @@ public partial class EpubReader : IEbookReader
 	}
 
 	/// <summary>
-	/// Maps the metadata from the epub to the EpubMetadata object
-	/// </summary>
-	/// <param name="metadata">Metadata from epub</param>
-	/// <returns></returns>
-	private EpubMetadata MapMetadata(Metadata metadata)
-	{
-		return new EpubMetadata
-		{
-			Title = metadata.Titles.First(x => !string.IsNullOrEmpty(x)),
-			Language = metadata.Languages.FirstOrDefault(x => !string.IsNullOrEmpty(x)) ?? string.Empty,
-			Identifiers = metadata.Identifiers.Select(x => new EpubIdentifier { Scheme = x.Scheme, Value = x.Value }).ToList(),
-			Authors = metadata.Creators?.Select(x => x.Name).ToList() ?? ["Unknown"],
-			Publisher = metadata.Publishers?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
-			PublishDate = metadata.Dates?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
-			Rights = metadata.Rights?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
-			Subject = metadata.Subjects?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
-			Description = metadata.Descriptions?.FirstOrDefault(x => !string.IsNullOrEmpty(x)),
-			Series = metadata.GetMetaValue("calibre:series"),
-			SeriesIndex = decimal.TryParse(metadata.GetMetaValue("calibre:series_index"), CultureInfo.InvariantCulture, out var index) ? index : null
-		};
-	}
-
-	/// <summary>
 	/// Loads the content of the epub, which includes both the Spine (index) and the chapters
 	/// </summary>
 	/// <returns></returns>
-	private async Task<Entities_Content> LoadContent()
+	private async Task<Content> LoadContent()
 	{
-		var content = new Entities_Content();
+		var content = new Content();
 			
 		var cssFiles = _package!.Manifest.Items.Where(x => x.MediaType.Equals("text/css")).ToList();
 		var cssTasks = cssFiles.Select(async item =>
@@ -272,38 +244,38 @@ public partial class EpubReader : IEbookReader
 				cssContent.Replace(fontFace.Value, null);
 			}
 			await HtmlManager.ReplaceCssProperties(cssContent);
-			return new Style { Name= item.Href, Content = cssContent.ToString()};
+			return new Stylesheet { Identifier= item.Href, Content = cssContent.ToString()};
 		});
 
-		content.Styles = await Task.WhenAll(cssTasks);
+		content.Stylesheets = await Task.WhenAll(cssTasks);
 			
-		List<EpubChapter> chapters;
-		EpubChapter? cover = null;
+		List<TocEntry> tableOfContents;
+		TocEntry? cover = null;
 		var coverItem = _package!.Manifest.Items.FirstOrDefault(x => x.Id == _package.Spine.ItemRefs.FirstOrDefault()?.IdRef);
 		if (coverItem != null)
 		{
 			_coverPath = coverItem.Href;
 			cover = new()
 			{
-				ItemId = coverItem.Id,
+				Id = coverItem.Id,
 				Title = "Cover",
 			};
 		}
 			
-		content.Spine = await MapSpineToSpineItemList();
+		content.Chapters = await MapSpineToChapterList();
 			
 			
 		if (_package.Manifest.Items.Any(i => i.Properties == "nav"))
 		{
 			// V3 NAV TOC
 			var nav = await LoadNavAsync(_package.Manifest.Items.First(i => i.Properties == "nav").Href);
-			chapters = await MapNavToEpubChapters(nav.ChapterList.First().Chapter);
+			tableOfContents = await MapNavToTableOfContents(nav.ChapterList.First().Chapter);
 		}
 		else if (_package!.Spine.Toc != null)
 		{
 			// V2 NCX TOC
 			var ncx = await ReadEntryAsync<NCX>(_package.Manifest.Items.First(x => x.Id == _package.Spine.Toc).Href);
-			chapters = await MapNavMapToEpubChapters(ncx.NavMap);
+			tableOfContents = await MapNavMapToTableOfContents(ncx.NavMap);
 		}
 		else
 		{
@@ -311,17 +283,19 @@ public partial class EpubReader : IEbookReader
 		}
 		if(cover != null)
 		{
-			if(chapters.Count == 1)
+			if(tableOfContents.Count == 1)
 			{
-				chapters.First().Chapters.Insert(0, cover);
+				var entries = tableOfContents.First().Entries.ToList();
+				entries.Insert(0, cover);
+				tableOfContents.First().Entries = entries;
 			}
 			else
 			{
-				chapters.Insert(0, cover);
+				tableOfContents.Insert(0, cover);
 			}
 		}
 			
-		content.TableOfContents = chapters;
+		content.TableOfContents = tableOfContents;
 
 		return content;
 
@@ -331,8 +305,8 @@ public partial class EpubReader : IEbookReader
 	/// Recursively loads the chapters from the NCX TOC
 	/// </summary>
 	/// <param name="navpoints">List of NXC NavPoints</param>
-	/// <returns>List of EpubChapter</returns>
-	private async Task<List<EpubChapter>> MapNavMapToEpubChapters(List<NCXNavPoint> navpoints)
+	/// <returns>List of TocEntry</returns>
+	private async Task<List<TocEntry>> MapNavMapToTableOfContents(List<NCXNavPoint> navpoints)
 	{
 		var tasks = navpoints.Select(async navPoint =>
 		{
@@ -341,18 +315,17 @@ public partial class EpubReader : IEbookReader
 				return null;
 			}
 
-			var chapter = new EpubChapter
+			var chapter = new TocEntry
 			{
 				Title = navPoint.NavLabel?.Text,
-				ItemId = _package!.Manifest.Items.FirstOrDefault(x => x.Href == CleanPath(navPoint.Content?.Src))?.Id
+				Id = _package!.Manifest.Items.FirstOrDefault(x => x.Href == CleanPath(navPoint.Content?.Src))?.Id
 			};
 
 			if(navPoint.NavPoints.Count > 0)
 			{
-				chapter.Chapters = await MapNavMapToEpubChapters(navPoint.NavPoints);
+				chapter.Entries = await MapNavMapToTableOfContents(navPoint.NavPoints);
 			}
-				
-
+			
 			return chapter;
 		});
 
@@ -364,46 +337,45 @@ public partial class EpubReader : IEbookReader
 	/// Maps the V3 NAV TOC to an EpubChapter list recursively
 	/// </summary>
 	/// <param name="navItems">List of Nav li items</param>
-	/// <returns>List of EpubChapter</returns>
-	private async Task<List<EpubChapter>> MapNavToEpubChapters(List<NavLi> navItems)
+	/// <returns>List of TocEntry</returns>
+	private async Task<List<TocEntry>> MapNavToTableOfContents(List<NavLi> navItems)
 	{
 		var tasks = navItems.Select(async navItem =>
 		{
-			var chapter = new EpubChapter
+			var chapter = new TocEntry
 			{
 				Title = navItem.Link.Text,
-				ItemId = _package!.Manifest.Items.FirstOrDefault(x => x.Href == CleanPath(navItem.Link.Href))?.Id
+				Id = _package!.Manifest.Items.FirstOrDefault(x => x.Href == CleanPath(navItem.Link.Href))?.Id
 			};
 
 			if(navItem.ChapterList.Count > 0)
 			{
-				chapter.Chapters = await MapNavToEpubChapters(navItem.ChapterList.First().Chapter);
+				chapter.Entries = await MapNavToTableOfContents(navItem.ChapterList.First().Chapter);
 			}
 				
 			return chapter;
 		});
 		var results = await Task.WhenAll(tasks);
-		return results.ToList()!;
+		return results.ToList();
 	}
 
 	/// <summary>
 	/// Maps the spine to a list of SpineItem
 	/// </summary>
 	/// <returns></returns>
-	private async Task<List<SpineItem>> MapSpineToSpineItemList()
+	private async Task<List<Chapter>> MapSpineToChapterList()
 	{
 		var items = await Task.WhenAll(_package!.Spine.ItemRefs.Select(async itemRef =>
 		{
 			var item = _package!.Manifest.Items.First(x => x.Id == itemRef.IdRef);
 			var content = await LoadFileContentAsync(item.Href);
-			return new SpineItem
+			return new Chapter
 			{
-				Id = item.Id,
-				TextContent = content,
+				Identifier = item.Id,
+				Content = content,
 				Title = GetChapterTitle(content),
-				Href = item.Href,
-				WordCount = GetWordCount(content),
-				Styles = GetStylesheets(content),
+				Weight = GetWordCount(content),
+				Stylesheets = GetStylesheets(content),
 				ParagraphClassName = GetParagraphClass(content)
 			};
 		}));
@@ -566,6 +538,10 @@ public partial class EpubReader : IEbookReader
 				var src = imageNode.Attributes.FirstOrDefault(a => a.Name == attributeName || a.Name.EndsWith(attributeName))?.Value;
 				if (string.IsNullOrEmpty(src)) continue;
 				var imageBytes = await LoadImageAsBytes(src);
+				
+				
+				
+				
 				imageNode.SetAttributeValue(attributeName, $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}");
 				if (imageNode.Attributes.Contains("class"))
 				{
