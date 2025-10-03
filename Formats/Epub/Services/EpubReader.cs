@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -23,7 +24,8 @@ public partial class EpubReader : IEbookReader
 {
 	private ZipArchive? _zipArchive;
 	private SemaphoreSlim? _zipLock;
-	
+
+	private string _cacheFolderName = string.Empty;
 	private Package? _package;
 	private string? _rootFolder;
 	private readonly char[] _separator = [' ', '\n', '\r', '\t'];
@@ -41,6 +43,10 @@ public partial class EpubReader : IEbookReader
 	
 	public async Task<Ebook> ReadAllAsync(string path)
 	{
+		if (!string.IsNullOrWhiteSpace(Globals.CachePath))
+		{
+			_cacheFolderName = Path.GetFileNameWithoutExtension(path);
+		}
 		return await ReadAsync(path, false);
 	} 
 	
@@ -262,7 +268,7 @@ public partial class EpubReader : IEbookReader
 			};
 		}
 			
-		content.Chapters = await MapSpineToChapterList();
+		content.Chapters = await MapSpineToChapters();
 			
 			
 		if (_package.Manifest.Items.Any(i => i.Properties == "nav"))
@@ -363,7 +369,7 @@ public partial class EpubReader : IEbookReader
 	/// Maps the spine to a list of SpineItem
 	/// </summary>
 	/// <returns></returns>
-	private async Task<List<Chapter>> MapSpineToChapterList()
+	private async Task<List<Chapter>> MapSpineToChapters()
 	{
 		var items = await Task.WhenAll(_package!.Spine.ItemRefs.Select(async itemRef =>
 		{
@@ -538,11 +544,31 @@ public partial class EpubReader : IEbookReader
 				var src = imageNode.Attributes.FirstOrDefault(a => a.Name == attributeName || a.Name.EndsWith(attributeName))?.Value;
 				if (string.IsNullOrEmpty(src)) continue;
 				var imageBytes = await LoadImageAsBytes(src);
+
+				if (!string.IsNullOrWhiteSpace(Globals.CachePath))
+				{
+					try
+					{
+						var hash = Convert.ToHexStringLower(SHA256.HashData(imageBytes));
+						var imagePath = Path.Combine(Globals.CachePath, _cacheFolderName, hash + Path.GetExtension(src));
+						if (!File.Exists(imagePath))
+						{
+							Directory.CreateDirectory(Path.Combine(Globals.CachePath, _cacheFolderName));
+							await File.WriteAllBytesAsync(imagePath, imageBytes);
+						}
+						imageNode.SetAttributeValue(attributeName, "/cache/" + _cacheFolderName + "/" + hash + Path.GetExtension(src));
+					}
+					catch
+					{
+						imageNode.SetAttributeValue(attributeName, $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}");
+					}
+					
+				}
+				else
+				{
+					imageNode.SetAttributeValue(attributeName, $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}");
+				}
 				
-				
-				
-				
-				imageNode.SetAttributeValue(attributeName, $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}");
 				if (imageNode.Attributes.Contains("class"))
 				{
 					imageNode.Attributes["class"].Value += " zoomable";
@@ -621,6 +647,7 @@ public partial class EpubReader : IEbookReader
 
     public void Dispose()
     {
+	    _cacheFolderName = string.Empty;
 	    _rootFolder = null;
 	    _package = null;
 	    _coverPath = null;
