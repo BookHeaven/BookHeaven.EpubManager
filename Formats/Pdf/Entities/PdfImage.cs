@@ -6,9 +6,9 @@ namespace BookHeaven.EbookManager.Formats.Pdf.Entities;
 internal class PdfImage : PdfBaseElement
 {
     public string MimeType { get; set; } = "image/png";
-    public byte[]? Data { get; set; }
+    public byte[]? Data { private get; init; }
     
-    public string? Src { get; set; }
+    public string? Src { private get; init; }
     
     public PdfImage() => Type = ElementType.Image;
     
